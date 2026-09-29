@@ -1,4 +1,4 @@
-﻿___INFO___
+___INFO___
 
 {
   "type": "TAG",
@@ -340,22 +340,18 @@ ___WEB_PERMISSIONS___
         {
           "key": "cookieAccess",
           "value": {
+            "type": 1,
+            "string": "specific"
+          }
+        },
+        {
+          "key": "cookieNames",
+          "value": {
             "type": 2,
             "listItem": [
               {
-                "type": 3,
-                "mapKey": [
-                  {
-                    "type": 1,
-                    "string": "name"
-                  }
-                ],
-                "mapValue": [
-                  {
-                    "type": 1,
-                    "string": "par_consent_state"
-                  }
-                ]
+                "type": 1,
+                "string": "par_consent_state"
               }
             ]
           }
@@ -378,5 +374,3 @@ scenarios: []
 ___NOTES___
 
 Created on 5/7/2025, 7:32:09 PM
-
-
