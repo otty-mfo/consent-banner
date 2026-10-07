@@ -28,6 +28,7 @@ A tag triggerének a beépített **"Consent Initialization - All Pages"** trigge
 - **Nyelv**: legördülőből választható 14 nyelv, vagy automatikus (böngésző nyelve)
 - **Cookie beállítások**: cookie neve, domainje (aldomainek közti megosztáshoz), lejárati ideje
 - **Cross-Domain Consent**: bekapcsolható, célhosztnevek vesszővel elválasztva
+- **Süti lista (Részletes tájékoztató)**: checkboxok szolgáltatónként (Google Analytics, Google Ads, Meta Ads, TikTok Ads, LinkedIn Ads, Microsoft Clarity, Microsoft/Bing Ads, Reddit Ads, Cloudflare). Csak azokat pipáld be, amelyek ténylegesen futnak az adott oldalon — ez vezérli, hogy a banner "Részletes süti tájékoztató" nézete mely sütiket sorolja fel kategóriánként (Elengedhetetlen/Beállítások/Statisztikai/Marketing). A konkrét süti-lista (név, szolgáltató, cél, lejárat, típus) a `banner.js`-ben van, csak magyar nyelven; a saját hozzájárulás-cookie (`cookieName`) mindig automatikusan bekerül az Elengedhetetlen listába.
 - **Speciális beállítások**: jsDelivr script URL + verziószám (git tag)
 
 ## Cross-Domain Consent működése

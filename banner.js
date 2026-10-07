@@ -17,6 +17,7 @@
 	var cookieExpiryDays = cfg.cookieExpiryDays || 365;
 	var crossDomainEnabled = !!(cfg.crossDomain && cfg.crossDomain.enabled);
 	var crossDomainHosts = (cfg.crossDomain && cfg.crossDomain.hosts) || [];
+	var cookieVendors = cfg.cookieVendors || {};
 
 	// ---- translations ----
 var ParDictionary = {
@@ -33,6 +34,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Manage Cookies',
 	'par-footer-accept-selection-text' : 'Save preferences',
 	'par-footer-accept-all-text' : 'Accept',
+	'par-body-details-link-text' : 'Open detailed cookie notice',
+	'par-footer-back-text' : 'Back',
 },
 'hu' : {			
 	'par-header-title-text' : '<p>Ez a weboldal sütiket használ</p>',
@@ -45,6 +48,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Sütik testreszabása',
 	'par-footer-accept-selection-text' : 'Beállítások mentése',
 	'par-footer-accept-all-text' : 'Rendben',
+	'par-body-details-link-text' : 'Részletes süti tájékoztató megnyitása',
+	'par-footer-back-text' : 'Vissza',
 },
 'de' : {			
 	'par-header-title-text' : '<p>Diese Website verwendet Cookies</p>',
@@ -57,6 +62,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Cookies anpassen',
 	'par-footer-accept-selection-text' : 'Auswahl bestätigen',
 	'par-footer-accept-all-text' : 'Alle akzeptieren',
+	'par-body-details-link-text' : 'Detaillierte Cookie-Erklärung öffnen',
+	'par-footer-back-text' : 'Zurück',
 },
 'es' : {				
 	'par-header-title-text' : '<p>Este sitio web utiliza cookies</p>',
@@ -69,6 +76,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Gestionar cookies',
 	'par-footer-accept-selection-text' : 'Guardar preferencias',
 	'par-footer-accept-all-text' : 'Aceptar',
+	'par-body-details-link-text' : 'Abrir información detallada de cookies',
+	'par-footer-back-text' : 'Atrás',
 },
 'fr' : {			
 	'par-header-title-text' : '<p>Informations sur les cookies</p>',
@@ -81,6 +90,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Paramètres',
 	'par-footer-accept-selection-text' : 'Afficher les paramètres',
 	'par-footer-accept-all-text' : 'Accepter',
+	'par-body-details-link-text' : 'Ouvrir les informations détaillées sur les cookies',
+	'par-footer-back-text' : 'Retour',
 },
 'it' : {				
 	'par-header-title-text' : '<p>Questo sito web utilizza i cookie</p>',
@@ -93,6 +104,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Gestisci cookie',
 	'par-footer-accept-selection-text' : 'Salva preferenze',
 	'par-footer-accept-all-text' : 'Accetta',
+	'par-body-details-link-text' : 'Apri informativa dettagliata sui cookie',
+	'par-footer-back-text' : 'Indietro',
 },
 'pt' : {				
 	'par-header-title-text' : '<p>Este site utiliza cookies</p>',
@@ -105,6 +118,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Gerir cookies',
 	'par-footer-accept-selection-text' : 'Guardar preferências',
 	'par-footer-accept-all-text' : 'Aceitar',
+	'par-body-details-link-text' : 'Abrir informação detalhada sobre cookies',
+	'par-footer-back-text' : 'Voltar',
 },
 'ro' : {			
 	'par-header-title-text' : '<p>Setări cookie</p>',
@@ -117,6 +132,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Gestionați cookie-urile',
 	'par-footer-accept-selection-text' : 'Confirmați selecția',
 	'par-footer-accept-all-text' : 'Accepta toate',
+	'par-body-details-link-text' : 'Deschide informațiile detaliate despre cookie-uri',
+	'par-footer-back-text' : 'Înapoi',
 },
 'sk' : {			
 	'par-header-title-text' : '<p>Správa súhlasu so súbormi cookie</p>',
@@ -129,6 +146,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Zobraziť preferencie',
 	'par-footer-accept-selection-text' : 'Uloženie predvolieb',
 	'par-footer-accept-all-text' : 'Prijať',
+	'par-body-details-link-text' : 'Otvoriť podrobné informácie o súboroch cookie',
+	'par-footer-back-text' : 'Späť',
 },
 'bg' : {			
 	'par-header-title-text' : '<p>Информация за бисквитки</p>',
@@ -141,6 +160,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Настройки',
 	'par-footer-accept-selection-text' : 'Преглед на настройките',
 	'par-footer-accept-all-text' : 'Приемам',
+	'par-body-details-link-text' : 'Отвори подробна информация за бисквитките',
+	'par-footer-back-text' : 'Назад',
 },
 'hr' : {			
 	'par-header-title-text' : '<p>Informacije o kolačićima</p>',
@@ -153,6 +174,8 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'Postavke',
 	'par-footer-accept-selection-text' : 'Pregled postavki',
 	'par-footer-accept-all-text' : 'Prihvaćam',
+	'par-body-details-link-text' : 'Otvori detaljne informacije o kolačićima',
+	'par-footer-back-text' : 'Natrag',
 },
 'cs' : {
     'par-header-title-text' : '<p>Tato webová stránka používá soubory cookie</p>',
@@ -165,6 +188,8 @@ var ParDictionary = {
     'par-footer-open-settings-text' : 'Spravovat cookies',
     'par-footer-accept-selection-text' : 'Uložit preference',
     'par-footer-accept-all-text' : 'Přijmout',
+    'par-body-details-link-text' : 'Otevřít podrobné informace o souborech cookie',
+    'par-footer-back-text' : 'Zpět',
 },
 'pl' : {				
     'par-header-title-text' : '<p>Ta strona używa plików cookie</p>',
@@ -177,6 +202,8 @@ var ParDictionary = {
     'par-footer-open-settings-text' : 'Zarządzaj plikami cookie',
     'par-footer-accept-selection-text' : 'Zapisz preferencje',
     'par-footer-accept-all-text' : 'Akceptuję',
+    'par-body-details-link-text' : 'Otwórz szczegółowe informacje o plikach cookie',
+    'par-footer-back-text' : 'Wstecz',
 },
 'ja' : {				
 	'par-header-title-text' : '<p>このウェブサイトはクッキーを使用しています</p>',
@@ -189,9 +216,11 @@ var ParDictionary = {
 	'par-footer-open-settings-text' : 'クッキーを管理',
 	'par-footer-accept-selection-text' : '設定を保存',
 	'par-footer-accept-all-text' : '同意する',
+	'par-body-details-link-text' : '詳細なクッキー通知を開く',
+	'par-footer-back-text' : '戻る',
 },
 },
-'translate': function() {
+'resolveLang': function() {
 	var lang = '';
 		if (navigator.languages && navigator.languages.length > 0) {
 			lang = navigator.languages[0];
@@ -200,8 +229,16 @@ var ParDictionary = {
 		} else {
 			lang = ParDictionary['defaultLang'];
 		}
-			lang = lang.split('-')[0].toLowerCase();		
+			lang = lang.split('-')[0].toLowerCase();
 			if (typeof lang == 'undefined' || typeof ParDictionary['trans_words'][lang] == 'undefined' || lang == '') {lang = ParDictionary['defaultLang'];}
+			return lang;
+	},
+	'text': function(parkey) {
+		var lang = ParDictionary.resolveLang();
+		return ParDictionary['trans_words'][lang][parkey] || ParDictionary['trans_words'][ParDictionary['defaultLang']][parkey] || '';
+	},
+	'translate': function() {
+			var lang = ParDictionary.resolveLang();
 			var elements = false;
 			for (var parkey in ParDictionary['trans_words'][lang]) {
 				if (ParDictionary['trans_words'][lang].hasOwnProperty(parkey)) {
@@ -215,6 +252,96 @@ var ParDictionary = {
 	}
 
 	ParDictionary.defaultLang = cfg.defaultLang || ParDictionary.defaultLang;
+
+	// ---- cookie catalog for the detailed cookie notice (hu-only content, vendor-gated) ----
+	// Each entry: category (necessary|preferences|statistics|marketing), vendor (optional key
+	// toggled from the GTM tag's "Süti lista" checkboxes; entries without a vendor are always shown).
+	var COOKIE_CATALOG = [
+		{ category: 'necessary', vendor: 'cloudflare', name: '__cf_bm', provider: 'Cloudflare', providerUrl: 'https://www.cloudflare.com/privacypolicy/', purpose: 'Megkülönbözteti az embereket a botoktól. Ez előnyös a weboldal számára, hogy érvényes jelentéseket készíthessen a weboldal használatáról.', duration: '1 nap', type: 'HTTP-süti' },
+
+		{ category: 'necessary', vendor: 'ga', name: 'test_cookie', provider: 'Google', providerUrl: 'https://business.safety.google/privacy/', purpose: 'Ellenőrzi, hogy a látogató böngészője támogatja-e a sütik használatát.', duration: '1 nap', type: 'HTTP-süti' },
+		{ category: 'statistics', vendor: 'ga', name: '_ga', provider: 'Google', providerUrl: 'https://business.safety.google/privacy/', purpose: 'A Google Analytics használja a látogató eszközére és viselkedésére vonatkozó adatok küldésére. Több eszközön és marketingcsatornán keresztül követi a látogatót.', duration: '2 év', type: 'HTTP-süti' },
+		{ category: 'statistics', vendor: 'ga', name: '_ga_#', provider: 'Google', providerUrl: 'https://business.safety.google/privacy/', purpose: 'A Google Analytics használja a látogató eszközére és viselkedésére vonatkozó adatok küldésére. Több eszközön és marketingcsatornán keresztül követi a látogatót.', duration: '2 év', type: 'HTTP-süti' },
+
+		{ category: 'marketing', vendor: 'googleAds', name: '_gcl_au', provider: 'Google', providerUrl: 'https://business.safety.google/privacy/', purpose: 'A weboldal hirdetési tevékenységének hatékonyságát méri, a hirdetések konverziós arányára vonatkozó adatok gyűjtésével, több weboldalon keresztül.', duration: '3 hónap', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'googleAds', name: '_gcl_ls', provider: 'Google', providerUrl: 'https://business.safety.google/privacy/', purpose: 'A weboldal hirdetési tevékenységének hatékonyságát méri, a hirdetések konverziós arányára vonatkozó adatok gyűjtésével, több weboldalon keresztül.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'googleAds', name: 'pagead/1p-user-list/#', provider: 'Google', providerUrl: 'https://business.safety.google/privacy/', purpose: 'Nyomon követi, hogy a látogató érdeklődést mutatott-e bizonyos termékek vagy események iránt több weboldalon keresztül, és érzékeli, hogyan navigál az oldalak között. Hirdetési tevékenység mérésére és az oldalak közötti jutalékfizetés elősegítésére szolgál.', duration: 'Munkamenet', type: 'Pixelkövető' },
+
+		{ category: 'marketing', vendor: 'meta', name: '_fbp', provider: 'Meta Platforms, Inc.', providerUrl: 'https://www.facebook.com/policy.php/', purpose: 'A Facebook ezt használja különféle hirdetési termékek megjelenítésére, például harmadik féltől származó hirdetők valós idejű ajánlattételéhez.', duration: '3 hónap', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'meta', name: 'lastExternalReferrer', provider: 'Meta Platforms, Inc.', providerUrl: 'https://www.facebook.com/policy.php/', purpose: 'Érzékeli, hogyan érte el a látogató a weboldalt, az utolsó URL-cím regisztrálásával.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'meta', name: 'lastExternalReferrerTime', provider: 'Meta Platforms, Inc.', providerUrl: 'https://www.facebook.com/policy.php/', purpose: 'Érzékeli, hogyan érte el a látogató a weboldalt, az utolsó URL-cím regisztrálásával.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+
+		{ category: 'statistics', vendor: 'tiktok', name: '_tt_enable_cookie', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'A TikTok közösségi hálózati szolgáltatás használja a beágyazott szolgáltatások használatának nyomon követésére.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'tiktok', name: 'tt_appInfo', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'A TikTok közösségi hálózati szolgáltatás használja a beágyazott szolgáltatások használatának nyomon követésére.', duration: 'Munkamenet', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'tiktok', name: 'tt_pixel_session_index', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'A TikTok közösségi hálózati szolgáltatás használja a beágyazott szolgáltatások használatának nyomon követésére.', duration: 'Munkamenet', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'tiktok', name: 'tt_sessionId', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'A TikTok közösségi hálózati szolgáltatás használja a beágyazott szolgáltatások használatának nyomon követésére.', duration: 'Munkamenet', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'tiktok', name: '_ttp', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'A TikTok közösségi hálózati szolgáltatás használja a beágyazott szolgáltatások használatának nyomon követésére.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'tiktok', name: 'ttcsid', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'A látogatót több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'tiktok', name: 'ttcsid_#', provider: 'TikTok', providerUrl: 'https://www.tiktok.com/legal/privacy-policy?lang=en', purpose: 'Méri a látogató és a weboldalon található hirdetési bannerek közötti konverziós arányt, a hirdetések relevanciájának optimalizálása érdekében.', duration: '1 év', type: 'HTTP-süti' },
+
+		{ category: 'necessary', vendor: 'linkedin', name: 'bcookie', provider: 'LinkedIn', providerUrl: 'https://www.linkedin.com/legal/privacy-policy', purpose: 'Kéretlen tartalmak (spam) észlelésére és a weboldal biztonságának javítására szolgál.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'necessary', vendor: 'linkedin', name: 'li_gc', provider: 'LinkedIn', providerUrl: 'https://www.linkedin.com/legal/privacy-policy', purpose: 'Tárolja a látogató süti-hozzájárulási állapotát az aktuális domainhez.', duration: '180 nap', type: 'HTTP-süti' },
+		{ category: 'preferences', vendor: 'linkedin', name: 'lidc', provider: 'LinkedIn', providerUrl: 'https://www.linkedin.com/legal/privacy-policy', purpose: 'Regisztrálja, hogy melyik szerverfürt szolgálja ki a látogatót. Terheléselosztással összefüggésben, a felhasználói élmény optimalizálására használt.', duration: '1 nap', type: 'HTTP-süti' },
+
+		{ category: 'statistics', vendor: 'clarity', name: '_clck', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Adatokat gyűjt a látogató navigációjáról és viselkedéséről a weboldalon. Statisztikai jelentések és hőtérképek összeállítására szolgál a weboldal tulajdonosa számára.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'statistics', vendor: 'clarity', name: '_clsk', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Regisztrálja a látogatók weboldalon mutatott viselkedésére vonatkozó statisztikai adatokat. A weboldal üzemeltetője belső elemzésre használja.', duration: '1 nap', type: 'HTTP-süti' },
+		{ category: 'statistics', vendor: 'clarity', name: 'c.gif', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Adatokat gyűjt a látogató navigációjáról és viselkedéséről a weboldalon. Statisztikai jelentések és hőtérképek összeállítására szolgál a weboldal tulajdonosa számára.', duration: 'Munkamenet', type: 'Pixelkövető' },
+		{ category: 'statistics', vendor: 'clarity', name: '_cltk', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Regisztrálja a látogatók weboldalon mutatott viselkedésére vonatkozó statisztikai adatokat. A weboldal üzemeltetője belső elemzésre használja.', duration: 'Munkamenet', type: 'Helyi HTML-tárhely' },
+
+		{ category: 'marketing', vendor: 'microsoftAds', name: '_uetsid', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'A látogatókat több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: '_uetsid_exp', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'Tartalmazza az azonos nevű süti lejárati dátumát.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: '_uetvid', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'A látogatókat több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: '_uetvid_exp', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'Tartalmazza az azonos nevű süti lejárati dátumát.', duration: 'Tartós', type: 'Helyi HTML-tárhely' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: 'MR', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'A látogatókat több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: '7 nap', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: 'MUID', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'A Microsoft egyedi felhasználói azonosítóként használja széles körben. A süti lehetővé teszi a felhasználó nyomon követését az azonosító Microsoft-domainek közötti szinkronizálásával.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: 'SRM_B', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-US/privacystatement', purpose: 'Nyomon követi a látogató interakcióját a weboldal keresősáv-funkciójával. Ezek az adatok releváns termékek vagy szolgáltatások megjelenítésére használhatók.', duration: '1 év', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: 'ANONCHK', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Adatokat regisztrál a látogatókról több látogatás és több weboldal alapján. Ezt az információt a weboldalakon megjelenő hirdetések hatékonyságának mérésére használják.', duration: '1 nap', type: 'HTTP-süti' },
+		{ category: 'marketing', vendor: 'microsoftAds', name: 'SM', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Egyedi azonosítót regisztrál, amely visszatérő látogatások során azonosítja a látogató eszközét, ugyanazt a hirdetési hálózatot használó weboldalakon. Az azonosítót célzott hirdetések megjelenítésére használják.', duration: 'Munkamenet', type: 'HTTP-süti' },
+
+		{ category: 'marketing', vendor: 'reddit', name: 'rp.gif', provider: 'Reddit', providerUrl: 'https://www.redditinc.com/policies/privacy-policy', purpose: 'A Reddit.com megosztás gomb funkciójának megvalósításához szükséges.', duration: 'Munkamenet', type: 'Pixelkövető' },
+		{ category: 'marketing', vendor: 'reddit', name: '_rdt_uuid', provider: 'Reddit', providerUrl: 'https://www.redditinc.com/policies/privacy-policy', purpose: 'A látogatókat több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: '3 hónap', type: 'HTTP-süti' }
+	];
+
+	function buildCookieTables() {
+		var titleKeys = {
+			necessary: 'par-body-necessary-title-text',
+			preferences: 'par-body-preferences-title-text',
+			statistics: 'par-body-analytics-title-text',
+			marketing: 'par-body-marketing-title-text'
+		};
+		var groups = { necessary: [], preferences: [], statistics: [], marketing: [] };
+
+		COOKIE_CATALOG.forEach(function (c) {
+			if (c.vendor && cookieVendors[c.vendor] !== true) return;
+			groups[c.category].push(c);
+		});
+
+		groups.necessary.unshift({
+			name: cookieName,
+			provider: 'Saját (első fél)',
+			providerUrl: '',
+			purpose: 'Tárolja a látogató süti-hozzájárulási beállításait ezen a domainen.',
+			duration: cookieExpiryDays + ' nap',
+			type: 'HTTP-süti'
+		});
+
+		var html = '';
+		['necessary', 'preferences', 'statistics', 'marketing'].forEach(function (cat, idx) {
+			var rows = groups[cat];
+			if (!rows.length) return;
+			var rowsHtml = rows.map(function (c) {
+				var providerCell = c.providerUrl
+					? '<a href="' + c.providerUrl + '" target="_blank" rel="noopener noreferrer nofollow">' + c.provider + '</a>'
+					: c.provider;
+				return '<tr><td>' + c.name + '</td><td>' + providerCell + '</td><td>' + c.purpose + '</td><td>' + c.duration + '</td><td>' + c.type + '</td></tr>';
+			}).join('');
+			html += '<details' + (idx === 0 ? ' open' : '') + '>' +
+				'<summary>' + ParDictionary.text(titleKeys[cat]) + ' (' + rows.length + ')</summary>' +
+				'<div class="par-cookie-table-wrapper"><table class="par-cookie-table"><thead><tr><th>Név</th><th>Szolgáltató</th><th>Cél</th><th>Max. tárolási idő</th><th>Típus</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
+				'</details>';
+		});
+		return html;
+	}
 
 	// ---- inject CSS ----
 	function injectStyle() {
@@ -367,6 +494,55 @@ var ParDictionary = {
 }
 .par-modal_settings.open{
 	display: block;
+}
+.par-modal_details{
+	display: none;
+}
+.par-modal_details.open{
+	display: block;
+}
+.par-modal_details details + details{
+	margin-top: .5em;
+}
+.par-cookie-table-wrapper{
+	overflow-x: auto;
+}
+.par-cookie-table{
+	width: 100%;
+	min-width: 34em;
+	table-layout: fixed;
+	border-collapse: collapse;
+	font-size: 12px;
+	line-height: 1.4em;
+}
+.par-cookie-table th,
+.par-cookie-table td{
+	text-align: left;
+	vertical-align: top;
+	padding: 6px 8px;
+	border-bottom: 1px solid #dadce0;
+	white-space: normal;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+.par-cookie-table th{
+	font-weight: bold;
+	color: var(--par-primary);
+}
+.par-cookie-table th:nth-child(1), .par-cookie-table td:nth-child(1){ width: 14%; }
+.par-cookie-table th:nth-child(2), .par-cookie-table td:nth-child(2){ width: 14%; }
+.par-cookie-table th:nth-child(3), .par-cookie-table td:nth-child(3){ width: 42%; }
+.par-cookie-table th:nth-child(4), .par-cookie-table td:nth-child(4){ width: 15%; }
+.par-cookie-table th:nth-child(5), .par-cookie-table td:nth-child(5){ width: 15%; }
+.par-link-button{
+	background: transparent;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	color: var(--par-primary);
+	font-size: 14px!important;
+	text-decoration: underline;
+	font-family: "Montserrat", sans-serif!important;
 }
 .par-modal_settings-wrapper{
 	display: flex;
@@ -655,8 +831,9 @@ details[open] summary {
             </div>
             <div class="par-modal__body">
 				<span class="par-body-title-text"></span>
-				<span class="par-body-description-text"></span>               
-            </div>			
+				<span class="par-body-description-text"></span>
+				<p><button type="button" class="par-link-button" id="par-goto-details"><span class="par-body-details-link-text"></span></button></p>
+            </div>
 			<div class="par-modal_settings" id="ParSettingsPanel">
 				<div class="par-modal_settings-wrapper">
 					<div class="par-switch_field">
@@ -689,11 +866,13 @@ details[open] summary {
 					</div>
 				</div>
 			</div>
-			
+			<div class="par-modal_details" id="ParDetailsPanel"></div>
+
             <div class="par-modal__footer">
                 <button class="par-modal__button" id="par-goto-selection"><span class="par-footer-open-settings-text"></span></button>
 				<button id="par-accept-selection" class="par-modal__button show_on_settings"><span class="par-footer-accept-selection-text"></span></button>
                 <button id="par-accept-all" class="par-modal__button par-modal__button--active"><span class="par-footer-accept-all-text"></span></button>
+				<button id="par-back-from-details" class="par-modal__button show_on_settings"><span class="par-footer-back-text"></span></button>
             </div>
         </div>
     </div>
@@ -817,14 +996,35 @@ details[open] summary {
 			document.getElementById('par-goto-selection').classList.add('show-it');
 			document.getElementById('par-accept-selection').classList.add('hide-it');
 		}
+		closeParDetailsPanel();
 	}
 
 	function openParSettingsPanel(id) {
+		closeParDetailsPanel();
 		document.getElementById(id).classList.add('open');
 		document.getElementById('par-goto-selection').classList.remove('show-it');
 		document.getElementById('par-accept-selection').classList.remove('hide-it');
 		document.getElementById('par-goto-selection').classList.add('hide-it');
 		document.getElementById('par-accept-selection').classList.add('show-it');
+	}
+
+	function openParDetailsPanel() {
+		document.getElementById('ParSettingsPanel').classList.remove('open');
+		document.getElementById('ParDetailsPanel').classList.add('open');
+		document.getElementById('par-goto-selection').classList.add('hide-it');
+		document.getElementById('par-accept-selection').classList.add('hide-it');
+		document.getElementById('par-accept-all').classList.add('hide-it');
+		document.getElementById('par-back-from-details').classList.remove('hide-it');
+		document.getElementById('par-back-from-details').classList.add('show-it');
+	}
+
+	function closeParDetailsPanel() {
+		document.getElementById('ParDetailsPanel').classList.remove('open');
+		document.getElementById('par-back-from-details').classList.remove('show-it');
+		document.getElementById('par-back-from-details').classList.add('hide-it');
+		document.getElementById('par-goto-selection').classList.remove('hide-it');
+		document.getElementById('par-accept-selection').classList.remove('show-it');
+		document.getElementById('par-accept-all').classList.remove('hide-it');
 	}
 
 	function acceptAllCookies() {
@@ -869,6 +1069,7 @@ details[open] summary {
 		injectStyle();
 		injectMarkup();
 		ParDictionary.translate();
+		document.getElementById('ParDetailsPanel').innerHTML = buildCookieTables();
 
 		var incoming = readCrossDomainParamsFromUrl();
 		if (incoming) {
@@ -888,6 +1089,12 @@ details[open] summary {
 		});
 		document.getElementById('par-goto-selection').addEventListener('click', function () {
 			openParSettingsPanel('ParSettingsPanel');
+		});
+		document.getElementById('par-goto-details').addEventListener('click', function () {
+			openParDetailsPanel();
+		});
+		document.getElementById('par-back-from-details').addEventListener('click', function () {
+			closeParDetailsPanel();
 		});
 		document.getElementById('par-open-settings').addEventListener('click', function () {
 			openParModal('par-accept');

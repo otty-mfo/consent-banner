@@ -163,6 +163,86 @@ ___TEMPLATE_PARAMETERS___
   },
   {
     "type": "GROUP",
+    "name": "cookieListGroup",
+    "displayName": "Süti lista (Részletes tájékoztató)",
+    "groupStyle": "ZIPPY_CLOSED",
+    "subParams": [
+      {
+        "type": "CHECKBOX",
+        "name": "includeGoogleAnalytics",
+        "checkboxText": "Google Analytics (GA4)",
+        "simpleValueType": true,
+        "defaultValue": true,
+        "help": "A _ga / _ga_# sütik feltüntetése a Statisztikai listában."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeGoogleAds",
+        "checkboxText": "Google Ads",
+        "simpleValueType": true,
+        "defaultValue": true,
+        "help": "A _gcl_au / _gcl_ls / pagead sütik feltüntetése a Marketing listában."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeMetaAds",
+        "checkboxText": "Meta (Facebook/Instagram) Ads",
+        "simpleValueType": true,
+        "defaultValue": true,
+        "help": "A _fbp és lastExternalReferrer* sütik feltüntetése a Marketing listában."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeTikTokAds",
+        "checkboxText": "TikTok Ads",
+        "simpleValueType": true,
+        "defaultValue": false,
+        "help": "Csak akkor pipáld be, ha az oldalon fut TikTok pixel/hirdetés."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeLinkedInAds",
+        "checkboxText": "LinkedIn Ads / Insight Tag",
+        "simpleValueType": true,
+        "defaultValue": false,
+        "help": "Csak akkor pipáld be, ha az oldalon fut LinkedIn Insight Tag vagy beágyazás."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeMicrosoftClarity",
+        "checkboxText": "Microsoft Clarity",
+        "simpleValueType": true,
+        "defaultValue": false,
+        "help": "Csak akkor pipáld be, ha az oldalon fut Clarity heatmap/session replay szkript."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeMicrosoftAds",
+        "checkboxText": "Microsoft/Bing Ads (UET)",
+        "simpleValueType": true,
+        "defaultValue": false,
+        "help": "Csak akkor pipáld be, ha ténylegesen fut Microsoft/Bing Ads kampány - a UET tag néha a Clarity taggel együtt települ, aktív kampány nélkül is."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeRedditAds",
+        "checkboxText": "Reddit Ads",
+        "simpleValueType": true,
+        "defaultValue": false,
+        "help": "Csak akkor pipáld be, ha az oldalon fut Reddit pixel/hirdetés."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeCloudflare",
+        "checkboxText": "Cloudflare (bot-védelem)",
+        "simpleValueType": true,
+        "defaultValue": true,
+        "help": "A __cf_bm süti feltüntetése az Elengedhetetlen listában, ha az oldal Cloudflare mögött fut."
+      }
+    ]
+  },
+  {
+    "type": "GROUP",
     "name": "advancedGroup",
     "displayName": "Speciális beállítások",
     "groupStyle": "ZIPPY_CLOSED",
@@ -248,6 +328,17 @@ const config = {
   crossDomain: {
     enabled: data.enableCrossDomain === true,
     hosts: crossDomainHostsList
+  },
+  cookieVendors: {
+    ga: data.includeGoogleAnalytics === true,
+    googleAds: data.includeGoogleAds === true,
+    meta: data.includeMetaAds === true,
+    tiktok: data.includeTikTokAds === true,
+    linkedin: data.includeLinkedInAds === true,
+    clarity: data.includeMicrosoftClarity === true,
+    microsoftAds: data.includeMicrosoftAds === true,
+    reddit: data.includeRedditAds === true,
+    cloudflare: data.includeCloudflare === true
   }
 };
 
