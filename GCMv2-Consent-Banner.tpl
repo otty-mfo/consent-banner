@@ -19,35 +19,35 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "GROUP",
     "name": "appearanceGroup",
-    "displayName": "Megjelenés",
+    "displayName": "Megjelenés / Téma",
     "groupStyle": "ZIPPY_OPEN",
     "subParams": [
       {
         "type": "TEXT",
-        "name": "primaryColor",
-        "displayName": "Kiemelő szín (HEX)",
+        "name": "mainColor",
+        "displayName": "Fő szín (HEX)",
         "simpleValueType": true,
         "defaultValue": "#4F74CB",
         "valueHint": "#4F74CB",
-        "help": "A cím, a linkek és a kapcsolók feliratának színe. A gombok színét a lenti két mező szabályozza."
+        "help": "A weboldal márkaszíne. Ez határozza meg a címet, a linkeket, a kapcsolók (toggle) bekapcsolt állapotát és a fő gomb ('Összes elfogadása') hátterét."
       },
       {
         "type": "TEXT",
-        "name": "buttonColor",
-        "displayName": "Gomb szín (HEX)",
+        "name": "secondaryColor",
+        "displayName": "Másodlagos szín (HEX)",
         "simpleValueType": true,
-        "defaultValue": "#000000",
-        "valueHint": "#000000",
-        "help": "A fő gomb (pl. 'Összes elfogadása') háttérszíne. A felirat ekkor fehér marad, ezért túl világos szín választásakor a szöveg nehezen olvasható lehet."
+        "defaultValue": "#9CA3AF",
+        "valueHint": "#9CA3AF",
+        "help": "Semleges, strukturális szín: a gombok kerete és a kapcsolók kikapcsolt állapotának háttere."
       },
       {
         "type": "TEXT",
-        "name": "buttonBorderColor",
-        "displayName": "Gomb kerete szín (HEX)",
+        "name": "accentColor",
+        "displayName": "Kiemelő szín (HEX)",
         "simpleValueType": true,
-        "defaultValue": "#000000",
-        "valueHint": "#000000",
-        "help": "A banner összes gombjának (pl. 'Sütik testreszabása', 'Elfogadás a kijelöltek alapján') keretszíne."
+        "defaultValue": "#4F9EFB",
+        "valueHint": "#4F9EFB",
+        "help": "Apró kiemelő elemek színe: a kapcsolók kikapcsolt állapotú gombja és a fókusz-keret (billentyűzetes navigációnál)."
       },
       {
         "type": "SELECT",
@@ -286,8 +286,8 @@ ___TEMPLATE_PARAMETERS___
         "name": "scriptVersion",
         "displayName": "Banner script verzió (git tag)",
         "simpleValueType": true,
-        "defaultValue": "v1.3.0",
-        "help": "A GitHub Releases alatt létrehozott tag neve, pl. v1.3.0. Új verzió esetén itt lehet frissíteni; publikálás (GTM verzió mentése) nélkül nem lép élesbe a régi oldalakon."
+        "defaultValue": "v1.4.0",
+        "help": "A GitHub Releases alatt létrehozott tag neve, pl. v1.4.0. Új verzió esetén itt lehet frissíteni; publikálás (GTM verzió mentése) nélkül nem lép élesbe a régi oldalakon."
       }
     ]
   }
@@ -344,9 +344,9 @@ const crossDomainHostsList = (data.crossDomainHosts || '')
   .filter(function (h) { return h.length > 0; });
 
 const config = {
-  primaryColor: data.primaryColor || '#4F74CB',
-  buttonColor: data.buttonColor || '#000000',
-  buttonBorderColor: data.buttonBorderColor || '#000000',
+  mainColor: data.mainColor || '#4F74CB',
+  secondaryColor: data.secondaryColor || '#9CA3AF',
+  accentColor: data.accentColor || '#4F9EFB',
   bannerPosition: data.bannerPosition || 'center',
   privacyPolicyUrl: data.privacyPolicyPath || '',
   defaultLang: data.defaultLang || '',
@@ -376,7 +376,7 @@ log('parBanner config =', config);
 setInWindow('__parBannerConfig', config, true);
 
 const baseUrl = data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner';
-const version = data.scriptVersion || 'v1.3.0';
+const version = data.scriptVersion || 'v1.4.0';
 const scriptUrl = baseUrl + '@' + version + '/banner.js';
 
 injectScript(scriptUrl, data.gtmOnSuccess, data.gtmOnFailure, scriptUrl);

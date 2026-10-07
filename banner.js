@@ -1,15 +1,15 @@
 /*!
  * Selfhosted, config-driven cookie consent banner for Google Consent Mode v2.
  * Reads window.__parBannerConfig (set by the GTM template) for:
- * primaryColor, buttonColor, buttonBorderColor, bannerPosition, privacyPolicyUrl, defaultLang,
+ * mainColor, secondaryColor, accentColor, bannerPosition, privacyPolicyUrl, defaultLang,
  * cookieName, cookieDomain, cookieExpiryDays,
  * crossDomain: { enabled, hosts: [...] }
  */
 (function () {
 	var cfg = window.__parBannerConfig || {};
-	var primaryColor = cfg.primaryColor || '#4F74CB';
-	var buttonColor = cfg.buttonColor || '#000000';
-	var buttonBorderColor = cfg.buttonBorderColor || '#000000';
+	var mainColor = cfg.mainColor || '#4F74CB';
+	var secondaryColor = cfg.secondaryColor || '#9CA3AF';
+	var accentColor = cfg.accentColor || '#4F9EFB';
 	var allowedPositions = ['center', 'bottom-right', 'bottom-left'];
 	var bannerPosition = allowedPositions.indexOf(cfg.bannerPosition) > -1 ? cfg.bannerPosition : 'center';
 	var settingsButtonSide = bannerPosition === 'bottom-left' ? 'right' : 'left';
@@ -350,7 +350,7 @@ var ParDictionary = {
 	// ---- inject CSS ----
 	function injectStyle() {
 		var style = document.createElement('style');
-		style.textContent = `:root{--par-primary: ${primaryColor}; --par-button: ${buttonColor}; --par-button-border: ${buttonBorderColor};}
+		style.textContent = `:root{--par-main: ${mainColor}; --par-secondary: ${secondaryColor}; --par-accent: ${accentColor};}
 .par-modal{
 	position: fixed!important;
 	width: 100vw!important;
@@ -401,7 +401,7 @@ var ParDictionary = {
 	font-size: 24px!important;
 	font-weight: 700!important;
 	line-height: 1.1em!important;
-	color: var(--par-primary)!important;
+	color: var(--par-main)!important;
 }
 .par-modal .par-modal__dialog {
 	transition: transform .3s ease-out;
@@ -466,7 +466,7 @@ var ParDictionary = {
 	line-height: 1.3em!important;
 }
 .par-modal__body > p > a {
-	color: var(--par-primary);
+	color: var(--par-main);
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
@@ -480,8 +480,8 @@ var ParDictionary = {
 	display: block;
 	width: 8px;
 	height: 8px;
-	border-top: 1px solid var(--par-primary);
-	border-right: 1px solid var(--par-primary);
+	border-top: 1px solid var(--par-main);
+	border-right: 1px solid var(--par-main);
 	transform: rotate(45deg);
 }
 .par-modal__body > * + * {
@@ -531,7 +531,7 @@ var ParDictionary = {
 }
 .par-cookie-table th{
 	font-weight: bold;
-	color: var(--par-primary);
+	color: var(--par-main);
 }
 .par-cookie-table th:nth-child(1), .par-cookie-table td:nth-child(1){ width: 14%; }
 .par-cookie-table th:nth-child(2), .par-cookie-table td:nth-child(2){ width: 14%; }
@@ -543,7 +543,7 @@ var ParDictionary = {
 	border: none;
 	padding: 0;
 	cursor: pointer;
-	color: var(--par-primary);
+	color: var(--par-main);
 	font-size: 14px!important;
 	text-decoration: underline;
 	font-family: "Montserrat", sans-serif!important;
@@ -572,7 +572,7 @@ var ParDictionary = {
 	font-size: 16px!important;
 	text-align: center;
 	font-weight: bold;
-	color: var(--par-primary);
+	color: var(--par-main);
 }
 .par-switch {
 	position: relative;
@@ -592,7 +592,7 @@ var ParDictionary = {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background-color: var(--par-primary);
+	background-color: var(--par-secondary);
 	-webkit-transition: .3s;
 	transition: .3s;
 	border-radius: 34px;
@@ -604,17 +604,17 @@ var ParDictionary = {
 	width: 26px;
 	left: 4px;
 	bottom: 4px;
-	background-color: #afe1ff;
+	background-color: var(--par-accent);
 	-webkit-transition: .3s;
 	transition: .3s;
 	border-radius: 50%;
 }
 
 input:checked + .par-slider {
-	background-color: #0056eb;
+	background-color: var(--par-main);
 }
 input:focus + .par-slider {
-	box-shadow: 0 0 1px #2196F3;
+	box-shadow: 0 0 1px var(--par-accent);
 }
 input:checked + .par-slider:before {
 	-webkit-transform: translateX(26px);
@@ -623,10 +623,10 @@ input:checked + .par-slider:before {
 	background-color: #fff;
 }
 input:disabled + .par-slider {
-	background-color: #e6f5ff;
+	background-color: #e5e7eb;
 }
 input:disabled + .par-slider:before {
-	background-color: #0056eb;
+	background-color: var(--par-main);
 }
 .par-modal__button {
 	flex:  1!important;
@@ -641,7 +641,7 @@ input:disabled + .par-slider:before {
 	transition: background-color .3s;
 	font-family: "Montserrat", sans-serif!important;
 	font-optical-sizing: auto;
-	border: 1px solid var(--par-button-border)!important;
+	border: 1px solid var(--par-secondary)!important;
 }
  .par-modal__button.show_on_settings{
 	 display: none;
@@ -660,11 +660,11 @@ input:disabled + .par-slider:before {
 }
 .par-modal__button--active {
 	color: #ffffff;
-	background-color: var(--par-button);
+	background-color: var(--par-main);
 }
 .par-modal__button--active:hover,
 .par-modal__button--active:focus {
-	background-color: var(--par-button);
+	background-color: var(--par-main);
 	filter: brightness(0.85);
 	color: #ffffff;
 }
@@ -679,7 +679,7 @@ input:disabled + .par-slider:before {
 	background: transparent;
 	z-index: 99998;
 	cursor: pointer;
-	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.3.0/assets/settings-icon.svg");
+	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.4.0/assets/settings-icon.svg");
 	background-repeat: no-repeat;
 	background-size: contain;
 	width: 3em;
@@ -832,7 +832,7 @@ details[open] summary {
         <div class="par-modal__content">
             <div class="par-modal__header">
                 <span class="par-header-title-text"></span>
-                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.3.0/assets/settings-icon.svg" alt="" aria-hidden="true">
+                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.4.0/assets/settings-icon.svg" alt="" aria-hidden="true">
             </div>
             <div class="par-modal__body">
 				<span class="par-body-title-text"></span>
