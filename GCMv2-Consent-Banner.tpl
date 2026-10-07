@@ -252,7 +252,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "scriptBaseUrl",
         "displayName": "Banner script alap URL (jsDelivr)",
         "simpleValueType": true,
-        "defaultValue": "https://cdn.jsdelivr.net/gh/patakiattilaroland-ppc/consent-banner",
+        "defaultValue": "https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner",
         "help": "Csak akkor módosítsd, ha másik GitHub repót/fiókot használtok."
       },
       {
@@ -346,7 +346,7 @@ log('parBanner config =', config);
 
 setInWindow('__parBannerConfig', config, true);
 
-const baseUrl = data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/patakiattilaroland-ppc/consent-banner';
+const baseUrl = data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner';
 const version = data.scriptVersion || 'v1.0.0';
 const scriptUrl = baseUrl + '@' + version + '/banner.js';
 
