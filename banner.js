@@ -674,7 +674,7 @@ input:disabled + .par-slider:before {
 	background: transparent;
 	z-index: 99998;
 	cursor: pointer;
-	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.0.0/assets/settings-icon.svg");
+	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.1.0/assets/settings-icon.svg");
 	background-repeat: no-repeat;
 	background-size: contain;
 	width: 3em;
@@ -827,7 +827,7 @@ details[open] summary {
         <div class="par-modal__content">
             <div class="par-modal__header">
                 <span class="par-header-title-text"></span>
-                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.0.0/assets/settings-icon.svg" alt="" aria-hidden="true">
+                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.1.0/assets/settings-icon.svg" alt="" aria-hidden="true">
             </div>
             <div class="par-modal__body">
 				<span class="par-body-title-text"></span>

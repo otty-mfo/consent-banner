@@ -260,8 +260,8 @@ ___TEMPLATE_PARAMETERS___
         "name": "scriptVersion",
         "displayName": "Banner script verzió (git tag)",
         "simpleValueType": true,
-        "defaultValue": "v1.0.0",
-        "help": "A GitHub Releases alatt létrehozott tag neve, pl. v1.0.0. Új verzió esetén itt lehet frissíteni; publikálás (GTM verzió mentése) nélkül nem lép élesbe a régi oldalakon."
+        "defaultValue": "v1.1.0",
+        "help": "A GitHub Releases alatt létrehozott tag neve, pl. v1.1.0. Új verzió esetén itt lehet frissíteni; publikálás (GTM verzió mentése) nélkül nem lép élesbe a régi oldalakon."
       }
     ]
   }
@@ -347,7 +347,7 @@ log('parBanner config =', config);
 setInWindow('__parBannerConfig', config, true);
 
 const baseUrl = data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner';
-const version = data.scriptVersion || 'v1.0.0';
+const version = data.scriptVersion || 'v1.1.0';
 const scriptUrl = baseUrl + '@' + version + '/banner.js';
 
 injectScript(scriptUrl, data.gtmOnSuccess, data.gtmOnFailure, scriptUrl);

@@ -37,7 +37,7 @@ Ha be van kapcsolva, a banner minden, a célhosztnevek egyikére mutató linkre 
 
 ## Verziózás
 
-A `main` branch mindig a legfrissebb, potenciálisan instabil kódot tartalmazza. **Éles használatra mindig egy konkrét git tag/release verziót állíts be** a tag "Speciális beállítások" részében (pl. `v1.0.0`), soha ne a `main` branch-et, így egy jövőbeli módosítás nem megy élesbe automatikusan minden ügyfél oldalán.
+A `main` branch mindig a legfrissebb, potenciálisan instabil kódot tartalmazza. **Éles használatra mindig egy konkrét git tag/release verziót állíts be** a tag "Speciális beállítások" részében (pl. `v1.1.0`), soha ne a `main` branch-et, így egy jövőbeli módosítás nem megy élesbe automatikusan minden ügyfél oldalán.
 
 Új verzió kiadása:
 1. GitHub → **Releases** → **Draft a new release**
