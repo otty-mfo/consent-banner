@@ -256,6 +256,14 @@ ___TEMPLATE_PARAMETERS___
         "simpleValueType": true,
         "defaultValue": true,
         "help": "A __cf_bm süti feltüntetése az Elengedhetetlen listában, ha az oldal Cloudflare mögött fut."
+      },
+      {
+        "type": "CHECKBOX",
+        "name": "includeOpenAIAds",
+        "checkboxText": "OpenAI / ChatGPT Ads",
+        "simpleValueType": true,
+        "defaultValue": false,
+        "help": "Csak akkor pipáld be, ha az oldalon fut az OpenAI konverziómérő pixelje (ChatGPT-ben futó hirdetések attribúciójához). A __oppref süti feltüntetése a Marketing listában."
       }
     ]
   },
@@ -278,8 +286,8 @@ ___TEMPLATE_PARAMETERS___
         "name": "scriptVersion",
         "displayName": "Banner script verzió (git tag)",
         "simpleValueType": true,
-        "defaultValue": "v1.2.0",
-        "help": "A GitHub Releases alatt létrehozott tag neve, pl. v1.2.0. Új verzió esetén itt lehet frissíteni; publikálás (GTM verzió mentése) nélkül nem lép élesbe a régi oldalakon."
+        "defaultValue": "v1.3.0",
+        "help": "A GitHub Releases alatt létrehozott tag neve, pl. v1.3.0. Új verzió esetén itt lehet frissíteni; publikálás (GTM verzió mentése) nélkül nem lép élesbe a régi oldalakon."
       }
     ]
   }
@@ -358,7 +366,8 @@ const config = {
     clarity: data.includeMicrosoftClarity === true,
     microsoftAds: data.includeMicrosoftAds === true,
     reddit: data.includeRedditAds === true,
-    cloudflare: data.includeCloudflare === true
+    cloudflare: data.includeCloudflare === true,
+    openai: data.includeOpenAIAds === true
   }
 };
 
@@ -367,7 +376,7 @@ log('parBanner config =', config);
 setInWindow('__parBannerConfig', config, true);
 
 const baseUrl = data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner';
-const version = data.scriptVersion || 'v1.2.0';
+const version = data.scriptVersion || 'v1.3.0';
 const scriptUrl = baseUrl + '@' + version + '/banner.js';
 
 injectScript(scriptUrl, data.gtmOnSuccess, data.gtmOnFailure, scriptUrl);

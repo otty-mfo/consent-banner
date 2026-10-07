@@ -301,7 +301,9 @@ var ParDictionary = {
 		{ category: 'marketing', vendor: 'microsoftAds', name: 'SM', provider: 'Microsoft', providerUrl: 'https://privacy.microsoft.com/en-us/privacystatement', purpose: 'Egyedi azonosítót regisztrál, amely visszatérő látogatások során azonosítja a látogató eszközét, ugyanazt a hirdetési hálózatot használó weboldalakon. Az azonosítót célzott hirdetések megjelenítésére használják.', duration: 'Munkamenet', type: 'HTTP-süti' },
 
 		{ category: 'marketing', vendor: 'reddit', name: 'rp.gif', provider: 'Reddit', providerUrl: 'https://www.redditinc.com/policies/privacy-policy', purpose: 'A Reddit.com megosztás gomb funkciójának megvalósításához szükséges.', duration: 'Munkamenet', type: 'Pixelkövető' },
-		{ category: 'marketing', vendor: 'reddit', name: '_rdt_uuid', provider: 'Reddit', providerUrl: 'https://www.redditinc.com/policies/privacy-policy', purpose: 'A látogatókat több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: '3 hónap', type: 'HTTP-süti' }
+		{ category: 'marketing', vendor: 'reddit', name: '_rdt_uuid', provider: 'Reddit', providerUrl: 'https://www.redditinc.com/policies/privacy-policy', purpose: 'A látogatókat több weboldalon keresztül nyomon követi, hogy a preferenciái alapján releváns hirdetést jelenítsen meg.', duration: '3 hónap', type: 'HTTP-süti' },
+
+		{ category: 'marketing', vendor: 'openai', name: '__oppref', provider: 'OpenAI OpCo, LLC', providerUrl: 'https://openai.com/policies/privacy-policy/', purpose: 'A ChatGPT-ben megjelenő hirdetésre történő kattintást köti össze a hirdető weboldalán bekövetkező későbbi konverzióval (attribúció).', duration: '~30 nap', type: 'HTTP-süti' }
 	];
 
 	function buildCookieTables() {
@@ -677,7 +679,7 @@ input:disabled + .par-slider:before {
 	background: transparent;
 	z-index: 99998;
 	cursor: pointer;
-	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.2.0/assets/settings-icon.svg");
+	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.3.0/assets/settings-icon.svg");
 	background-repeat: no-repeat;
 	background-size: contain;
 	width: 3em;
@@ -830,7 +832,7 @@ details[open] summary {
         <div class="par-modal__content">
             <div class="par-modal__header">
                 <span class="par-header-title-text"></span>
-                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.2.0/assets/settings-icon.svg" alt="" aria-hidden="true">
+                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.3.0/assets/settings-icon.svg" alt="" aria-hidden="true">
             </div>
             <div class="par-modal__body">
 				<span class="par-body-title-text"></span>

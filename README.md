@@ -37,11 +37,11 @@ Ha be van kapcsolva, a banner minden, a célhosztnevek egyikére mutató linkre 
 
 ## Verziózás
 
-A `main` branch mindig a legfrissebb, potenciálisan instabil kódot tartalmazza. **Éles használatra mindig egy konkrét git tag/release verziót állíts be** a tag "Speciális beállítások" részében (pl. `v1.2.0`), soha ne a `main` branch-et, így egy jövőbeli módosítás nem megy élesbe automatikusan minden ügyfél oldalán.
+A `main` branch mindig a legfrissebb, potenciálisan instabil kódot tartalmazza. **Éles használatra mindig egy konkrét git tag/release verziót állíts be** a tag "Speciális beállítások" részében (pl. `v1.3.0`), soha ne a `main` branch-et, így egy jövőbeli módosítás nem megy élesbe automatikusan minden ügyfél oldalán.
 
 Új verzió kiadása:
 1. GitHub → **Releases** → **Draft a new release**
-2. Tag: `vX.Y.Z` (pl. `v1.2.0`)
+2. Tag: `vX.Y.Z` (pl. `v1.3.0`)
 3. **Publish release**
 4. A tag "Banner script verzió" mezőjében írd át `vX.Y.Z`-re, majd mentsd/publikáld a GTM konténer új verzióját
 
