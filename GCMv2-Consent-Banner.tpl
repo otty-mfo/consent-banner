@@ -29,7 +29,25 @@ ___TEMPLATE_PARAMETERS___
         "simpleValueType": true,
         "defaultValue": "#4F74CB",
         "valueHint": "#4F74CB",
-        "help": "A cím, a linkek és a kapcsolók feliratának színe. A gombok (Rendben / Sütik testreszabása) színe fixen fekete-fehér, ezt a mező nem befolyásolja."
+        "help": "A cím, a linkek és a kapcsolók feliratának színe. A gombok színét a lenti két mező szabályozza."
+      },
+      {
+        "type": "TEXT",
+        "name": "buttonColor",
+        "displayName": "Gomb szín (HEX)",
+        "simpleValueType": true,
+        "defaultValue": "#000000",
+        "valueHint": "#000000",
+        "help": "A fő gomb (pl. 'Összes elfogadása') háttérszíne. A felirat ekkor fehér marad, ezért túl világos szín választásakor a szöveg nehezen olvasható lehet."
+      },
+      {
+        "type": "TEXT",
+        "name": "buttonBorderColor",
+        "displayName": "Gomb kerete szín (HEX)",
+        "simpleValueType": true,
+        "defaultValue": "#000000",
+        "valueHint": "#000000",
+        "help": "A banner összes gombjának (pl. 'Sütik testreszabása', 'Elfogadás a kijelöltek alapján') keretszíne."
       },
       {
         "type": "SELECT",
@@ -319,6 +337,8 @@ const crossDomainHostsList = (data.crossDomainHosts || '')
 
 const config = {
   primaryColor: data.primaryColor || '#4F74CB',
+  buttonColor: data.buttonColor || '#000000',
+  buttonBorderColor: data.buttonBorderColor || '#000000',
   bannerPosition: data.bannerPosition || 'center',
   privacyPolicyUrl: data.privacyPolicyPath || '',
   defaultLang: data.defaultLang || '',

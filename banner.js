@@ -1,13 +1,15 @@
 /*!
  * Selfhosted, config-driven cookie consent banner for Google Consent Mode v2.
  * Reads window.__parBannerConfig (set by the GTM template) for:
- * primaryColor, bannerPosition, privacyPolicyUrl, defaultLang,
+ * primaryColor, buttonColor, buttonBorderColor, bannerPosition, privacyPolicyUrl, defaultLang,
  * cookieName, cookieDomain, cookieExpiryDays,
  * crossDomain: { enabled, hosts: [...] }
  */
 (function () {
 	var cfg = window.__parBannerConfig || {};
 	var primaryColor = cfg.primaryColor || '#4F74CB';
+	var buttonColor = cfg.buttonColor || '#000000';
+	var buttonBorderColor = cfg.buttonBorderColor || '#000000';
 	var allowedPositions = ['center', 'bottom-right', 'bottom-left'];
 	var bannerPosition = allowedPositions.indexOf(cfg.bannerPosition) > -1 ? cfg.bannerPosition : 'center';
 	var settingsButtonSide = bannerPosition === 'bottom-left' ? 'right' : 'left';
@@ -346,7 +348,7 @@ var ParDictionary = {
 	// ---- inject CSS ----
 	function injectStyle() {
 		var style = document.createElement('style');
-		style.textContent = `:root{--par-primary: ${primaryColor};}
+		style.textContent = `:root{--par-primary: ${primaryColor}; --par-button: ${buttonColor}; --par-button-border: ${buttonBorderColor};}
 .par-modal{
 	position: fixed!important;
 	width: 100vw!important;
@@ -637,7 +639,7 @@ input:disabled + .par-slider:before {
 	transition: background-color .3s;
 	font-family: "Montserrat", sans-serif!important;
 	font-optical-sizing: auto;
-	border: 1px solid #000000!important;
+	border: 1px solid var(--par-button-border)!important;
 }
  .par-modal__button.show_on_settings{
 	 display: none;
@@ -656,11 +658,12 @@ input:disabled + .par-slider:before {
 }
 .par-modal__button--active {
 	color: #ffffff;
-	background-color: #000000;
+	background-color: var(--par-button);
 }
 .par-modal__button--active:hover,
 .par-modal__button--active:focus {
-	background-color: #4d4d4d;
+	background-color: var(--par-button);
+	filter: brightness(0.85);
 	color: #ffffff;
 }
 .par-modal__button--settings, .par-modal__button--settings:hover {
