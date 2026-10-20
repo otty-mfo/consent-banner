@@ -61,6 +61,24 @@ ___TEMPLATE_PARAMETERS___
           { "value": "bottom-left", "displayValue": "Balra lent" }
         ],
         "help": "A banner ablak elhelyezkedése a képernyőn. Mobilon (767px alatt) mindig középen jelenik meg a jobb olvashatóság érdekében."
+      },
+      {
+        "type": "TEXT",
+        "name": "fontFamily",
+        "displayName": "Betűtípus (CSS font-family érték)",
+        "simpleValueType": true,
+        "defaultValue": "Arial, sans-serif",
+        "valueHint": "\"Poppins\", sans-serif",
+        "help": "A weboldal saját betűtípusának neve CSS font-family formátumban, idézőjelekkel. Ha a betűtípus nem natívan elérhető a böngészőben (pl. nem rendszer-font), add meg alább a betöltő stíluslap URL-jét is."
+      },
+      {
+        "type": "TEXT",
+        "name": "fontUrl",
+        "displayName": "Betűtípus stíluslap URL-je (opcionális)",
+        "simpleValueType": true,
+        "defaultValue": "",
+        "valueHint": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap",
+        "help": "Csak akkor szükséges, ha a fenti betűtípus nincs már betöltve a weboldalon (pl. Google Fonts). Üresen hagyva a banner a weboldal által már betöltött betűtípust vagy a böngésző alapértelmezett sans-serif fontját használja."
       }
     ]
   },
@@ -128,7 +146,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "cookieName",
         "displayName": "Cookie neve",
         "simpleValueType": true,
-        "defaultValue": "par_consent_state",
+        "defaultValue": "omf_consent_state",
         "help": "Csak akkor módosítsd, ha ütközne egy másik cookie-val."
       },
       {
@@ -160,7 +178,7 @@ ___TEMPLATE_PARAMETERS___
         "checkboxText": "Cross-domain consent megosztás engedélyezése",
         "simpleValueType": true,
         "defaultValue": false,
-        "help": "Ha engedélyezed, a hozzájárulás URL paraméteren (par_consent) keresztül átadódik a megadott célhosztokra mutató linkeken kattintáskor. A bejövő paramétert a céloldal automatikusan feldolgozza és eltünteti az URL-ből."
+        "help": "Ha engedélyezed, a hozzájárulás URL paraméteren (omf_consent) keresztül átadódik a megadott célhosztokra mutató linkeken kattintáskor. A bejövő paramétert a céloldal automatikusan feldolgozza és eltünteti az URL-ből. Az átadott érték alá van írva egy megosztott kulccsal (lásd lent) - enélkül a mechanizmus biztonsági okból nem működik, mert bárki hamisíthatna egy linket, ami a látogató tudta/beleegyezése nélkül állítana be hozzájárulást."
       },
       {
         "type": "TEXT",
@@ -169,6 +187,21 @@ ___TEMPLATE_PARAMETERS___
         "simpleValueType": true,
         "defaultValue": "",
         "help": "Vesszővel elválasztott hosztnevek, pl.: shop.pelda.hu, blog.pelda.hu. A jelenlegi domain automatikusan kimarad.",
+        "enablingConditions": [
+          {
+            "paramName": "enableCrossDomain",
+            "paramValue": true,
+            "type": "EQUALS"
+          }
+        ]
+      },
+      {
+        "type": "TEXT",
+        "name": "crossDomainSecret",
+        "displayName": "Aláíró kulcs (secret)",
+        "simpleValueType": true,
+        "defaultValue": "",
+        "help": "KÖTELEZŐ a cross-domain megosztás tényleges működéséhez. Ugyanezt a kulcsot kell beállítani MINDEN domain GTM tagjében, amik egymás közt megosztják a hozzájárulást (ez hitelesíti az átadott consent-et, hogy ne lehessen linkkel hamisítani). Ha üresen hagyod, az átadás biztonsági okból nem fog működni - a célodalon simán megjelenik a banner, mintha első látogatás lenne.",
         "enablingConditions": [
           {
             "paramName": "enableCrossDomain",
@@ -269,6 +302,31 @@ ___TEMPLATE_PARAMETERS___
   },
   {
     "type": "GROUP",
+    "name": "consentLogGroup",
+    "displayName": "Consent naplózás (opcionális)",
+    "groupStyle": "ZIPPY_CLOSED",
+    "subParams": [
+      {
+        "type": "TEXT",
+        "name": "consentLogUrl",
+        "displayName": "Naplózó endpoint URL",
+        "simpleValueType": true,
+        "defaultValue": "",
+        "valueHint": "https://script.google.com/macros/s/.../exec",
+        "help": "Opcionális. Ha megadod (pl. egy Google Apps Script Web App URL-jét), minden tényleges látogatói döntés (Rendben / Elutasítás / Beállítások mentése) elküldésre kerül ide naplózás céljából, a GDPR 7. cikk (1) szerinti bizonyítási kötelezettség teljesítéséhez. Üresen hagyva a naplózás teljesen ki van kapcsolva, semmilyen hálózati hívás nem történik."
+      },
+      {
+        "type": "TEXT",
+        "name": "consentLogSecret",
+        "displayName": "Megosztott secret (opcionális)",
+        "simpleValueType": true,
+        "defaultValue": "",
+        "help": "Ha a naplózó endpoint ellenőriz egy megosztott kulcsot, itt add meg ugyanazt az értéket. Ez csak a véletlen/robot-forgalom kiszűrésére való, nem valódi biztonsági garancia - az endpoint URL-je és ez az érték is megtalálható a kliensoldali kódban."
+      }
+    ]
+  },
+  {
+    "type": "GROUP",
     "name": "advancedGroup",
     "displayName": "Speciális beállítások",
     "groupStyle": "ZIPPY_CLOSED",
@@ -304,7 +362,7 @@ const setDefaultConsentState = require('setDefaultConsentState');
 const updateConsentState = require('updateConsentState');
 const getCookieValues = require('getCookieValues');
 
-const cookieName = data.cookieName || 'par_consent_state';
+const cookieName = data.cookieName || 'omf_consent_state';
 
 // ---- 1) Consent Mode v2 alapállapot + visszatöltés cookie-ból ----
 
@@ -350,12 +408,15 @@ const config = {
   bannerPosition: data.bannerPosition || 'center',
   privacyPolicyUrl: data.privacyPolicyPath || '',
   defaultLang: data.defaultLang || '',
+  fontFamily: data.fontFamily || 'Arial, sans-serif',
+  fontUrl: data.fontUrl || '',
   cookieName: cookieName,
   cookieDomain: data.cookieDomain || '',
   cookieExpiryDays: makeNumber(data.cookieExpiryDays) || 365,
   crossDomain: {
     enabled: data.enableCrossDomain === true,
-    hosts: crossDomainHostsList
+    hosts: crossDomainHostsList,
+    secret: data.crossDomainSecret || ''
   },
   cookieVendors: {
     ga: data.includeGoogleAnalytics === true,
@@ -368,12 +429,15 @@ const config = {
     reddit: data.includeRedditAds === true,
     cloudflare: data.includeCloudflare === true,
     openai: data.includeOpenAIAds === true
-  }
+  },
+  consentLogUrl: data.consentLogUrl || '',
+  consentLogSecret: data.consentLogSecret || '',
+  scriptVersion: data.scriptVersion || 'v1.4.0'
 };
 
-log('parBanner config =', config);
+log('omfBanner config =', config);
 
-setInWindow('__parBannerConfig', config, true);
+setInWindow('__omfBannerConfig', config, true);
 
 const baseUrl = data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner';
 const version = data.scriptVersion || 'v1.4.0';
@@ -537,7 +601,7 @@ ___WEB_PERMISSIONS___
             "listItem": [
               {
                 "type": 1,
-                "string": "par_consent_state"
+                "string": "omf_consent_state"
               }
             ]
           }
@@ -570,7 +634,7 @@ ___WEB_PERMISSIONS___
                   { "type": 1, "string": "execute" }
                 ],
                 "mapValue": [
-                  { "type": 1, "string": "__parBannerConfig" },
+                  { "type": 1, "string": "__omfBannerConfig" },
                   { "type": 8, "boolean": true },
                   { "type": 8, "boolean": true },
                   { "type": 8, "boolean": false }

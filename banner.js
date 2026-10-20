@@ -1,12 +1,14 @@
 /*!
  * Selfhosted, config-driven cookie consent banner for Google Consent Mode v2.
- * Reads window.__parBannerConfig (set by the GTM template) for:
+ * Reads window.__omfBannerConfig (set by the GTM template) for:
  * mainColor, secondaryColor, accentColor, bannerPosition, privacyPolicyUrl, defaultLang,
+ * fontFamily (CSS font-family value), fontUrl (optional stylesheet URL, e.g. Google Fonts CSS2 link),
  * cookieName, cookieDomain, cookieExpiryDays,
- * crossDomain: { enabled, hosts: [...] }
+ * crossDomain: { enabled, hosts: [...], secret (required for the link to actually carry signed consent) },
+ * consentLogUrl (optional Apps Script Web App endpoint), consentLogSecret (optional shared secret)
  */
 (function () {
-	var cfg = window.__parBannerConfig || {};
+	var cfg = window.__omfBannerConfig || {};
 	var mainColor = cfg.mainColor || '#4F74CB';
 	var secondaryColor = cfg.secondaryColor || '#9CA3AF';
 	var accentColor = cfg.accentColor || '#4F9EFB';
@@ -14,212 +16,239 @@
 	var bannerPosition = allowedPositions.indexOf(cfg.bannerPosition) > -1 ? cfg.bannerPosition : 'center';
 	var settingsButtonSide = bannerPosition === 'bottom-left' ? 'right' : 'left';
 	var privacyPolicyUrl = cfg.privacyPolicyUrl || '';
-	var cookieName = cfg.cookieName || cfg.storageKey || 'par_consent_state';
+	var cookieName = cfg.cookieName || cfg.storageKey || 'omf_consent_state';
 	var cookieDomain = cfg.cookieDomain || '';
 	var cookieExpiryDays = cfg.cookieExpiryDays || 365;
 	var crossDomainEnabled = !!(cfg.crossDomain && cfg.crossDomain.enabled);
 	var crossDomainHosts = (cfg.crossDomain && cfg.crossDomain.hosts) || [];
+	var crossDomainSecret = (cfg.crossDomain && cfg.crossDomain.secret) || '';
 	var cookieVendors = cfg.cookieVendors || {};
+	var fontFamily = cfg.fontFamily || 'Arial, sans-serif';
+	var fontUrl = cfg.fontUrl || '';
+	var consentLogUrl = cfg.consentLogUrl || '';
+	var consentLogSecret = cfg.consentLogSecret || '';
+	var adblockDetected = null;
+	var bannerVersion = cfg.scriptVersion || '';
+
+	function escapeHtml(str) {
+		return String(str).replace(/[&<>"']/g, function (ch) {
+			return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+		});
+	}
 
 	// ---- translations ----
-var ParDictionary = {
+var OmfDictionary = {
 'defaultLang' : 'en',
 'trans_words': {
 'en' : {				
-	'par-header-title-text' : '<p>This website uses cookies</p>',
-	'par-body-title-text' : '<p>To ensure the proper functioning of the website, the use of certain cookies is essential. Additionally, we use cookies for statistical, marketing measurement, and advertising purposes. These latter cookies are loaded only after clicking the "Accept" button. For more information about cookies, please refer to our Privacy Policy.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Privacy Policy</a></p>`,
-	'par-body-necessary-title-text' : 'Necessary',
-	'par-body-preferences-title-text' : 'Personalization',
-	'par-body-analytics-title-text' : 'Statistics',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Manage Cookies',
-	'par-footer-accept-selection-text' : 'Save preferences',
-	'par-footer-accept-all-text' : 'Accept',
-	'par-body-details-link-text' : 'Open detailed cookie notice',
-	'par-footer-back-text' : 'Back',
+	'omf-header-title-text' : '<p>This website uses cookies</p>',
+	'omf-body-title-text' : '<p>To ensure the proper functioning of the website, the use of certain cookies is essential. Additionally, we use cookies for statistical, marketing measurement, and advertising purposes. These latter cookies are loaded only after clicking the "Accept" button. For more information about cookies, please refer to our Privacy Policy.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Privacy Policy</a></p>`,
+	'omf-body-necessary-title-text' : 'Necessary',
+	'omf-body-preferences-title-text' : 'Personalization',
+	'omf-body-analytics-title-text' : 'Statistics',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Manage Cookies',
+	'omf-footer-accept-selection-text' : 'Save preferences',
+	'omf-footer-accept-all-text' : 'Accept',
+	'omf-footer-reject-all-text' : 'Reject All',
+	'omf-body-details-link-text' : 'Open detailed cookie notice',
+	'omf-footer-back-text' : 'Back',
 },
 'hu' : {			
-	'par-header-title-text' : '<p>Ez a weboldal sütiket használ</p>',
-	'par-body-title-text' : '<p>Az oldal helyes működéséhez elengedhetetlen bizonyos cookie-k használata. Továbbá statisztikai, marketing mérési és hirdetési célból is használunk cookie-kat. Utóbbiak a Rendben gombra kattintás után töltődnek be. A sütikről bővebb tájékoztatás az adatkezelési tájékoztatóban olvasható.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Adatkezelési tájékoztató</a></p>`,
-	'par-body-necessary-title-text' : 'Elengedhetetlen',
-	'par-body-preferences-title-text' : 'Beállítások',
-	'par-body-analytics-title-text' : 'Statisztikai',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Sütik testreszabása',
-	'par-footer-accept-selection-text' : 'Beállítások mentése',
-	'par-footer-accept-all-text' : 'Rendben',
-	'par-body-details-link-text' : 'Részletes süti tájékoztató megnyitása',
-	'par-footer-back-text' : 'Vissza',
+	'omf-header-title-text' : '<p>Ez a weboldal sütiket használ</p>',
+	'omf-body-title-text' : '<p>Az oldal helyes működéséhez elengedhetetlen bizonyos cookie-k használata. Továbbá statisztikai, marketing mérési és hirdetési célból is használunk cookie-kat. Utóbbiak a Rendben gombra kattintás után töltődnek be. A sütikről bővebb tájékoztatás az adatkezelési tájékoztatóban olvasható.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Adatkezelési tájékoztató</a></p>`,
+	'omf-body-necessary-title-text' : 'Elengedhetetlen',
+	'omf-body-preferences-title-text' : 'Beállítások',
+	'omf-body-analytics-title-text' : 'Statisztikai',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Sütik testreszabása',
+	'omf-footer-accept-selection-text' : 'Beállítások mentése',
+	'omf-footer-accept-all-text' : 'Rendben',
+	'omf-footer-reject-all-text' : 'Elutasítás',
+	'omf-body-details-link-text' : 'Részletes süti tájékoztató megnyitása',
+	'omf-footer-back-text' : 'Vissza',
 },
 'de' : {			
-	'par-header-title-text' : '<p>Diese Website verwendet Cookies</p>',
-	'par-body-title-text' : '<p>Für das ordnungsgemäße Funktionieren der Seite ist die Verwendung bestimmter Cookies unerlässlich. Darüber hinaus verwenden wir Cookies zu statistischen, Marketing- und Werbezwecken. Diese werden erst nach dem Klick auf „Alle akzeptieren“ geladen. Weitere Informationen zu Cookies finden Sie in der Datenschutzerklärung.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span>Datenschutzerklärung</a></p>`,
-	'par-body-necessary-title-text' : 'Unverzichtbar',
-	'par-body-preferences-title-text' : 'Personalisierung',
-	'par-body-analytics-title-text' : 'Statistiken',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Cookies anpassen',
-	'par-footer-accept-selection-text' : 'Auswahl bestätigen',
-	'par-footer-accept-all-text' : 'Alle akzeptieren',
-	'par-body-details-link-text' : 'Detaillierte Cookie-Erklärung öffnen',
-	'par-footer-back-text' : 'Zurück',
+	'omf-header-title-text' : '<p>Diese Website verwendet Cookies</p>',
+	'omf-body-title-text' : '<p>Für das ordnungsgemäße Funktionieren der Seite ist die Verwendung bestimmter Cookies unerlässlich. Darüber hinaus verwenden wir Cookies zu statistischen, Marketing- und Werbezwecken. Diese werden erst nach dem Klick auf „Alle akzeptieren“ geladen. Weitere Informationen zu Cookies finden Sie in der Datenschutzerklärung.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span>Datenschutzerklärung</a></p>`,
+	'omf-body-necessary-title-text' : 'Unverzichtbar',
+	'omf-body-preferences-title-text' : 'Personalisierung',
+	'omf-body-analytics-title-text' : 'Statistiken',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Cookies anpassen',
+	'omf-footer-accept-selection-text' : 'Auswahl bestätigen',
+	'omf-footer-accept-all-text' : 'Alle akzeptieren',
+	'omf-footer-reject-all-text' : 'Alle ablehnen',
+	'omf-body-details-link-text' : 'Detaillierte Cookie-Erklärung öffnen',
+	'omf-footer-back-text' : 'Zurück',
 },
 'es' : {				
-	'par-header-title-text' : '<p>Este sitio web utiliza cookies</p>',
-	'par-body-title-text' : '<p>Para garantizar el correcto funcionamiento del sitio web, es esencial el uso de ciertas cookies. Además, utilizamos cookies con fines estadísticos, de medición de marketing y de publicidad. Estas últimas cookies se cargan solo después de hacer clic en el botón "Aceptar". Para obtener más información sobre las cookies, consulte nuestra Política de Privacidad.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Política de Privacidad</a></p>`,
-	'par-body-necessary-title-text' : 'Necesarias',
-	'par-body-preferences-title-text' : 'Personalización',
-	'par-body-analytics-title-text' : 'Estadísticas',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Gestionar cookies',
-	'par-footer-accept-selection-text' : 'Guardar preferencias',
-	'par-footer-accept-all-text' : 'Aceptar',
-	'par-body-details-link-text' : 'Abrir información detallada de cookies',
-	'par-footer-back-text' : 'Atrás',
+	'omf-header-title-text' : '<p>Este sitio web utiliza cookies</p>',
+	'omf-body-title-text' : '<p>Para garantizar el correcto funcionamiento del sitio web, es esencial el uso de ciertas cookies. Además, utilizamos cookies con fines estadísticos, de medición de marketing y de publicidad. Estas últimas cookies se cargan solo después de hacer clic en el botón "Aceptar". Para obtener más información sobre las cookies, consulte nuestra Política de Privacidad.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Política de Privacidad</a></p>`,
+	'omf-body-necessary-title-text' : 'Necesarias',
+	'omf-body-preferences-title-text' : 'Personalización',
+	'omf-body-analytics-title-text' : 'Estadísticas',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Gestionar cookies',
+	'omf-footer-accept-selection-text' : 'Guardar preferencias',
+	'omf-footer-accept-all-text' : 'Aceptar',
+	'omf-footer-reject-all-text' : 'Rechazar todo',
+	'omf-body-details-link-text' : 'Abrir información detallada de cookies',
+	'omf-footer-back-text' : 'Atrás',
 },
 'fr' : {			
-	'par-header-title-text' : '<p>Informations sur les cookies</p>',
-	'par-body-title-text' : '<p>Lutilisation de certains cookies est essentielle au bon fonctionnement du site Web. Nous utilisons également des cookies à des fins statistiques, de mesures marketing et publicitaires. Ces derniers sont chargés lorsque vous cliquez sur le bouton Accepter. Vous pouvez trouver plus d informations sur les cookies dans la section de la politique de confidentialité.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span>Politique de confidentialité</a></p>`,
-	'par-body-necessary-title-text' : 'Fonctionnels',
-	'par-body-preferences-title-text' : 'Préférences',
-	'par-body-analytics-title-text' : 'Statistiques',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Paramètres',
-	'par-footer-accept-selection-text' : 'Afficher les paramètres',
-	'par-footer-accept-all-text' : 'Accepter',
-	'par-body-details-link-text' : 'Ouvrir les informations détaillées sur les cookies',
-	'par-footer-back-text' : 'Retour',
+	'omf-header-title-text' : '<p>Informations sur les cookies</p>',
+	'omf-body-title-text' : '<p>Lutilisation de certains cookies est essentielle au bon fonctionnement du site Web. Nous utilisons également des cookies à des fins statistiques, de mesures marketing et publicitaires. Ces derniers sont chargés lorsque vous cliquez sur le bouton Accepter. Vous pouvez trouver plus d informations sur les cookies dans la section de la politique de confidentialité.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span>Politique de confidentialité</a></p>`,
+	'omf-body-necessary-title-text' : 'Fonctionnels',
+	'omf-body-preferences-title-text' : 'Préférences',
+	'omf-body-analytics-title-text' : 'Statistiques',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Paramètres',
+	'omf-footer-accept-selection-text' : 'Afficher les paramètres',
+	'omf-footer-accept-all-text' : 'Accepter',
+	'omf-footer-reject-all-text' : 'Tout refuser',
+	'omf-body-details-link-text' : 'Ouvrir les informations détaillées sur les cookies',
+	'omf-footer-back-text' : 'Retour',
 },
 'it' : {				
-	'par-header-title-text' : '<p>Questo sito web utilizza i cookie</p>',
-	'par-body-title-text' : '<p>Per garantire il corretto funzionamento del sito web, è essenziale l\'uso di alcuni cookie. Inoltre, utilizziamo cookie per scopi statistici, di misurazione del marketing e pubblicitari. Questi ultimi cookie vengono caricati solo dopo aver cliccato sul pulsante "Accetta". Per maggiori informazioni sui cookie, consultare la nostra Informativa sulla Privacy.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Informativa sulla Privacy</a></p>`,
-	'par-body-necessary-title-text' : 'Necessari',
-	'par-body-preferences-title-text' : 'Personalizzazione',
-	'par-body-analytics-title-text' : 'Statistiche',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Gestisci cookie',
-	'par-footer-accept-selection-text' : 'Salva preferenze',
-	'par-footer-accept-all-text' : 'Accetta',
-	'par-body-details-link-text' : 'Apri informativa dettagliata sui cookie',
-	'par-footer-back-text' : 'Indietro',
+	'omf-header-title-text' : '<p>Questo sito web utilizza i cookie</p>',
+	'omf-body-title-text' : '<p>Per garantire il corretto funzionamento del sito web, è essenziale l\'uso di alcuni cookie. Inoltre, utilizziamo cookie per scopi statistici, di misurazione del marketing e pubblicitari. Questi ultimi cookie vengono caricati solo dopo aver cliccato sul pulsante "Accetta". Per maggiori informazioni sui cookie, consultare la nostra Informativa sulla Privacy.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Informativa sulla Privacy</a></p>`,
+	'omf-body-necessary-title-text' : 'Necessari',
+	'omf-body-preferences-title-text' : 'Personalizzazione',
+	'omf-body-analytics-title-text' : 'Statistiche',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Gestisci cookie',
+	'omf-footer-accept-selection-text' : 'Salva preferenze',
+	'omf-footer-accept-all-text' : 'Accetta',
+	'omf-footer-reject-all-text' : 'Rifiuta tutto',
+	'omf-body-details-link-text' : 'Apri informativa dettagliata sui cookie',
+	'omf-footer-back-text' : 'Indietro',
 },
 'pt' : {				
-	'par-header-title-text' : '<p>Este site utiliza cookies</p>',
-	'par-body-title-text' : '<p>Para garantir o correto funcionamento do site, é essencial o uso de determinados cookies. Além disso, utilizamos cookies para fins estatísticos, de medição de marketing e de publicidade. Estes últimos cookies são carregados apenas após clicar no botão "Aceitar". Para mais informações sobre os cookies, consulte a nossa Política de Privacidade.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Política de Privacidade</a></p>`,
-	'par-body-necessary-title-text' : 'Necessários',
-	'par-body-preferences-title-text' : 'Personalização',
-	'par-body-analytics-title-text' : 'Estatísticas',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Gerir cookies',
-	'par-footer-accept-selection-text' : 'Guardar preferências',
-	'par-footer-accept-all-text' : 'Aceitar',
-	'par-body-details-link-text' : 'Abrir informação detalhada sobre cookies',
-	'par-footer-back-text' : 'Voltar',
+	'omf-header-title-text' : '<p>Este site utiliza cookies</p>',
+	'omf-body-title-text' : '<p>Para garantir o correto funcionamento do site, é essencial o uso de determinados cookies. Além disso, utilizamos cookies para fins estatísticos, de medição de marketing e de publicidade. Estes últimos cookies são carregados apenas após clicar no botão "Aceitar". Para mais informações sobre os cookies, consulte a nossa Política de Privacidade.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Política de Privacidade</a></p>`,
+	'omf-body-necessary-title-text' : 'Necessários',
+	'omf-body-preferences-title-text' : 'Personalização',
+	'omf-body-analytics-title-text' : 'Estatísticas',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Gerir cookies',
+	'omf-footer-accept-selection-text' : 'Guardar preferências',
+	'omf-footer-accept-all-text' : 'Aceitar',
+	'omf-footer-reject-all-text' : 'Rejeitar tudo',
+	'omf-body-details-link-text' : 'Abrir informação detalhada sobre cookies',
+	'omf-footer-back-text' : 'Voltar',
 },
 'ro' : {			
-	'par-header-title-text' : '<p>Setări cookie</p>',
-	'par-body-title-text' : '<p>Utilizarea anumitor cookie-uri este esențială pentru ca site-ul să funcționeze corect. De asemenea, folosim cookie-uri în scopuri statistice, de măsurare de marketing și de publicitate. Acestea din urmă sunt încărcate când faceți clic pe butonul Accepta toate. Puteți obține mai multe informații despre cookie-uri prin pagina Politica de Confidențialitate.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span>Politica de confidențialitate</a></p>`,
-	'par-body-necessary-title-text' : 'Necesar',
-	'par-body-preferences-title-text' : 'Preferințe',
-	'par-body-analytics-title-text' : 'Statistici',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Gestionați cookie-urile',
-	'par-footer-accept-selection-text' : 'Confirmați selecția',
-	'par-footer-accept-all-text' : 'Accepta toate',
-	'par-body-details-link-text' : 'Deschide informațiile detaliate despre cookie-uri',
-	'par-footer-back-text' : 'Înapoi',
+	'omf-header-title-text' : '<p>Setări cookie</p>',
+	'omf-body-title-text' : '<p>Utilizarea anumitor cookie-uri este esențială pentru ca site-ul să funcționeze corect. De asemenea, folosim cookie-uri în scopuri statistice, de măsurare de marketing și de publicitate. Acestea din urmă sunt încărcate când faceți clic pe butonul Accepta toate. Puteți obține mai multe informații despre cookie-uri prin pagina Politica de Confidențialitate.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span>Politica de confidențialitate</a></p>`,
+	'omf-body-necessary-title-text' : 'Necesar',
+	'omf-body-preferences-title-text' : 'Preferințe',
+	'omf-body-analytics-title-text' : 'Statistici',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Gestionați cookie-urile',
+	'omf-footer-accept-selection-text' : 'Confirmați selecția',
+	'omf-footer-accept-all-text' : 'Accepta toate',
+	'omf-footer-reject-all-text' : 'Respinge tot',
+	'omf-body-details-link-text' : 'Deschide informațiile detaliate despre cookie-uri',
+	'omf-footer-back-text' : 'Înapoi',
 },
 'sk' : {			
-	'par-header-title-text' : '<p>Správa súhlasu so súbormi cookie</p>',
-	'par-body-title-text' : '<p>Pre správne fungovanie stránky je nevyhnutné používanie určitých súborov cookie. Okrem toho používame súbory cookie aj na štatistické, marketingové merania a reklamné účely. Tieto súbory cookie sa načítajú po kliknutí na tlačidlo „Prijať“. Podrobnejšie informácie o súboroch cookie nájdete v našom oznámení o spracúvaní osobných údajov.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span>Zásady ochrany osobných údajove</a></p>`,
-	'par-body-necessary-title-text' : 'Funkčné',
-	'par-body-preferences-title-text' : 'Predvoľby',
-	'par-body-analytics-title-text' : 'Štatistiky',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Zobraziť preferencie',
-	'par-footer-accept-selection-text' : 'Uloženie predvolieb',
-	'par-footer-accept-all-text' : 'Prijať',
-	'par-body-details-link-text' : 'Otvoriť podrobné informácie o súboroch cookie',
-	'par-footer-back-text' : 'Späť',
+	'omf-header-title-text' : '<p>Správa súhlasu so súbormi cookie</p>',
+	'omf-body-title-text' : '<p>Pre správne fungovanie stránky je nevyhnutné používanie určitých súborov cookie. Okrem toho používame súbory cookie aj na štatistické, marketingové merania a reklamné účely. Tieto súbory cookie sa načítajú po kliknutí na tlačidlo „Prijať“. Podrobnejšie informácie o súboroch cookie nájdete v našom oznámení o spracúvaní osobných údajov.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span>Zásady ochrany osobných údajove</a></p>`,
+	'omf-body-necessary-title-text' : 'Funkčné',
+	'omf-body-preferences-title-text' : 'Predvoľby',
+	'omf-body-analytics-title-text' : 'Štatistiky',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Zobraziť preferencie',
+	'omf-footer-accept-selection-text' : 'Uloženie predvolieb',
+	'omf-footer-accept-all-text' : 'Prijať',
+	'omf-footer-reject-all-text' : 'Odmietnuť všetko',
+	'omf-body-details-link-text' : 'Otvoriť podrobné informácie o súboroch cookie',
+	'omf-footer-back-text' : 'Späť',
 },
 'bg' : {			
-	'par-header-title-text' : '<p>Информация за бисквитки</p>',
-	'par-body-title-text' : '<p>Използването на определени бисквитки е от съществено значение за правилното функциониране на уебсайта. Ние също така използваме бисквитки за статистически, маркетингови измервания и рекламни цели. Последните се зареждат, когато щракнете върху бутона „Приемам“. Повече информация за бисквитките можете да намерите в раздела за поверителност.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span>Политика за защита на личните данни</a></p>`,
-	'par-body-necessary-title-text' : 'Функционален',
-	'par-body-preferences-title-text' : 'Предпочитания',
-	'par-body-analytics-title-text' : 'Статистика',
-	'par-body-marketing-title-text' : 'Маркетинг',
-	'par-footer-open-settings-text' : 'Настройки',
-	'par-footer-accept-selection-text' : 'Преглед на настройките',
-	'par-footer-accept-all-text' : 'Приемам',
-	'par-body-details-link-text' : 'Отвори подробна информация за бисквитките',
-	'par-footer-back-text' : 'Назад',
+	'omf-header-title-text' : '<p>Информация за бисквитки</p>',
+	'omf-body-title-text' : '<p>Използването на определени бисквитки е от съществено значение за правилното функциониране на уебсайта. Ние също така използваме бисквитки за статистически, маркетингови измервания и рекламни цели. Последните се зареждат, когато щракнете върху бутона „Приемам“. Повече информация за бисквитките можете да намерите в раздела за поверителност.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span>Политика за защита на личните данни</a></p>`,
+	'omf-body-necessary-title-text' : 'Функционален',
+	'omf-body-preferences-title-text' : 'Предпочитания',
+	'omf-body-analytics-title-text' : 'Статистика',
+	'omf-body-marketing-title-text' : 'Маркетинг',
+	'omf-footer-open-settings-text' : 'Настройки',
+	'omf-footer-accept-selection-text' : 'Преглед на настройките',
+	'omf-footer-accept-all-text' : 'Приемам',
+	'omf-footer-reject-all-text' : 'Отхвърли всички',
+	'omf-body-details-link-text' : 'Отвори подробна информация за бисквитките',
+	'omf-footer-back-text' : 'Назад',
 },
 'hr' : {			
-	'par-header-title-text' : '<p>Informacije o kolačićima</p>',
-	'par-body-title-text' : '<p>Korištenje određenih kolačića nužno je za pravilno funkcioniranje web stranice. Također koristimo kolačiće za statističke, marketinške mjere i reklamne svrhe. Ovi kolačići se učitavaju kada kliknete na gumb „Prihvaćam”. Više informacija o kolačićima možete pronaći u odjeljku o privatnosti.</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span>Politika zaštite privatnosti</a></p>`,
-	'par-body-necessary-title-text' : 'Funkcionalni',
-	'par-body-preferences-title-text' : 'Preferencije',
-	'par-body-analytics-title-text' : 'Statistika',
-	'par-body-marketing-title-text' : 'Marketing',
-	'par-footer-open-settings-text' : 'Postavke',
-	'par-footer-accept-selection-text' : 'Pregled postavki',
-	'par-footer-accept-all-text' : 'Prihvaćam',
-	'par-body-details-link-text' : 'Otvori detaljne informacije o kolačićima',
-	'par-footer-back-text' : 'Natrag',
+	'omf-header-title-text' : '<p>Informacije o kolačićima</p>',
+	'omf-body-title-text' : '<p>Korištenje određenih kolačića nužno je za pravilno funkcioniranje web stranice. Također koristimo kolačiće za statističke, marketinške mjere i reklamne svrhe. Ovi kolačići se učitavaju kada kliknete na gumb „Prihvaćam”. Više informacija o kolačićima možete pronaći u odjeljku o privatnosti.</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span>Politika zaštite privatnosti</a></p>`,
+	'omf-body-necessary-title-text' : 'Funkcionalni',
+	'omf-body-preferences-title-text' : 'Preferencije',
+	'omf-body-analytics-title-text' : 'Statistika',
+	'omf-body-marketing-title-text' : 'Marketing',
+	'omf-footer-open-settings-text' : 'Postavke',
+	'omf-footer-accept-selection-text' : 'Pregled postavki',
+	'omf-footer-accept-all-text' : 'Prihvaćam',
+	'omf-footer-reject-all-text' : 'Odbij sve',
+	'omf-body-details-link-text' : 'Otvori detaljne informacije o kolačićima',
+	'omf-footer-back-text' : 'Natrag',
 },
 'cs' : {
-    'par-header-title-text' : '<p>Tato webová stránka používá soubory cookie</p>',
-    'par-body-title-text' : '<p>Pro zajištění správného fungování webu je nezbytné použití určitých souborů cookie. Dále používáme soubory cookie pro statistické účely, měření marketingu a reklamní účely. Tyto soubory cookie se načítají pouze po kliknutí na tlačítko "Přijmout". Více informací o souborech cookie naleznete v našich Zásadách ochrany osobních údajů.</p>',
-    'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Zásady ochrany osobních údajů</a></p>`,
-    'par-body-necessary-title-text' : 'Nezbytné',
-    'par-body-preferences-title-text' : 'Personalizace',
-    'par-body-analytics-title-text' : 'Statistiky',
-    'par-body-marketing-title-text' : 'Marketing',
-    'par-footer-open-settings-text' : 'Spravovat cookies',
-    'par-footer-accept-selection-text' : 'Uložit preference',
-    'par-footer-accept-all-text' : 'Přijmout',
-    'par-body-details-link-text' : 'Otevřít podrobné informace o souborech cookie',
-    'par-footer-back-text' : 'Zpět',
+    'omf-header-title-text' : '<p>Tato webová stránka používá soubory cookie</p>',
+    'omf-body-title-text' : '<p>Pro zajištění správného fungování webu je nezbytné použití určitých souborů cookie. Dále používáme soubory cookie pro statistické účely, měření marketingu a reklamní účely. Tyto soubory cookie se načítají pouze po kliknutí na tlačítko "Přijmout". Více informací o souborech cookie naleznete v našich Zásadách ochrany osobních údajů.</p>',
+    'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Zásady ochrany osobních údajů</a></p>`,
+    'omf-body-necessary-title-text' : 'Nezbytné',
+    'omf-body-preferences-title-text' : 'Personalizace',
+    'omf-body-analytics-title-text' : 'Statistiky',
+    'omf-body-marketing-title-text' : 'Marketing',
+    'omf-footer-open-settings-text' : 'Spravovat cookies',
+    'omf-footer-accept-selection-text' : 'Uložit preference',
+    'omf-footer-accept-all-text' : 'Přijmout',
+    'omf-footer-reject-all-text' : 'Odmítnout vše',
+    'omf-body-details-link-text' : 'Otevřít podrobné informace o souborech cookie',
+    'omf-footer-back-text' : 'Zpět',
 },
 'pl' : {				
-    'par-header-title-text' : '<p>Ta strona używa plików cookie</p>',
-    'par-body-title-text' : '<p>Aby zapewnić prawidłowe działanie strony, niektóre pliki cookie są niezbędne. Dodatkowo wykorzystujemy pliki cookie do celów statystycznych, marketingowych oraz reklamowych. Te dodatkowe pliki cookie są ładowane dopiero po kliknięciu przycisku „Akceptuję”. Więcej informacji na temat plików cookie znajdziesz w naszej Polityce Prywatności.</p>',
-    'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> Polityka Prywatności</a></p>`,
-    'par-body-necessary-title-text' : 'Niezbędne',
-    'par-body-preferences-title-text' : 'Personalizacja',
-    'par-body-analytics-title-text' : 'Statystyka',
-    'par-body-marketing-title-text' : 'Marketing',
-    'par-footer-open-settings-text' : 'Zarządzaj plikami cookie',
-    'par-footer-accept-selection-text' : 'Zapisz preferencje',
-    'par-footer-accept-all-text' : 'Akceptuję',
-    'par-body-details-link-text' : 'Otwórz szczegółowe informacje o plikach cookie',
-    'par-footer-back-text' : 'Wstecz',
+    'omf-header-title-text' : '<p>Ta strona używa plików cookie</p>',
+    'omf-body-title-text' : '<p>Aby zapewnić prawidłowe działanie strony, niektóre pliki cookie są niezbędne. Dodatkowo wykorzystujemy pliki cookie do celów statystycznych, marketingowych oraz reklamowych. Te dodatkowe pliki cookie są ładowane dopiero po kliknięciu przycisku „Akceptuję”. Więcej informacji na temat plików cookie znajdziesz w naszej Polityce Prywatności.</p>',
+    'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> Polityka Prywatności</a></p>`,
+    'omf-body-necessary-title-text' : 'Niezbędne',
+    'omf-body-preferences-title-text' : 'Personalizacja',
+    'omf-body-analytics-title-text' : 'Statystyka',
+    'omf-body-marketing-title-text' : 'Marketing',
+    'omf-footer-open-settings-text' : 'Zarządzaj plikami cookie',
+    'omf-footer-accept-selection-text' : 'Zapisz preferencje',
+    'omf-footer-accept-all-text' : 'Akceptuję',
+    'omf-footer-reject-all-text' : 'Odrzuć wszystkie',
+    'omf-body-details-link-text' : 'Otwórz szczegółowe informacje o plikach cookie',
+    'omf-footer-back-text' : 'Wstecz',
 },
 'ja' : {				
-	'par-header-title-text' : '<p>このウェブサイトはクッキーを使用しています</p>',
-	'par-body-title-text' : '<p>ウェブサイトを正しく機能させるためには、特定のクッキーの使用が不可欠です。さらに、統計、マーケティングの測定、広告の目的でクッキーを使用しています。これらのクッキーは「同意する」ボタンをクリックした後にのみ読み込まれます。クッキーに関する詳細については、プライバシーポリシーをご覧ください。</p>',
-	'par-body-description-text' : `<p><a class="policy_url" href="${privacyPolicyUrl}" target="_blank"><span></span> プライバシーポリシー</a></p>`,
-	'par-body-necessary-title-text' : '必須',
-	'par-body-preferences-title-text' : 'パーソナライズ',
-	'par-body-analytics-title-text' : '統計',
-	'par-body-marketing-title-text' : 'マーケティング',
-	'par-footer-open-settings-text' : 'クッキーを管理',
-	'par-footer-accept-selection-text' : '設定を保存',
-	'par-footer-accept-all-text' : '同意する',
-	'par-body-details-link-text' : '詳細なクッキー通知を開く',
-	'par-footer-back-text' : '戻る',
+	'omf-header-title-text' : '<p>このウェブサイトはクッキーを使用しています</p>',
+	'omf-body-title-text' : '<p>ウェブサイトを正しく機能させるためには、特定のクッキーの使用が不可欠です。さらに、統計、マーケティングの測定、広告の目的でクッキーを使用しています。これらのクッキーは「同意する」ボタンをクリックした後にのみ読み込まれます。クッキーに関する詳細については、プライバシーポリシーをご覧ください。</p>',
+	'omf-body-description-text' : `<p><a class="policy_url" href="${escapeHtml(privacyPolicyUrl)}" target="_blank"><span></span> プライバシーポリシー</a></p>`,
+	'omf-body-necessary-title-text' : '必須',
+	'omf-body-preferences-title-text' : 'パーソナライズ',
+	'omf-body-analytics-title-text' : '統計',
+	'omf-body-marketing-title-text' : 'マーケティング',
+	'omf-footer-open-settings-text' : 'クッキーを管理',
+	'omf-footer-accept-selection-text' : '設定を保存',
+	'omf-footer-accept-all-text' : '同意する',
+	'omf-footer-reject-all-text' : 'すべて拒否',
+	'omf-body-details-link-text' : '詳細なクッキー通知を開く',
+	'omf-footer-back-text' : '戻る',
 },
 },
 'resolveLang': function() {
@@ -229,31 +258,31 @@ var ParDictionary = {
 		} else if (navigator.language) {
 			lang = navigator.language;
 		} else {
-			lang = ParDictionary['defaultLang'];
+			lang = OmfDictionary['defaultLang'];
 		}
 			lang = lang.split('-')[0].toLowerCase();
-			if (typeof lang == 'undefined' || typeof ParDictionary['trans_words'][lang] == 'undefined' || lang == '') {lang = ParDictionary['defaultLang'];}
+			if (typeof lang == 'undefined' || typeof OmfDictionary['trans_words'][lang] == 'undefined' || lang == '') {lang = OmfDictionary['defaultLang'];}
 			return lang;
 	},
-	'text': function(parkey) {
-		var lang = ParDictionary.resolveLang();
-		return ParDictionary['trans_words'][lang][parkey] || ParDictionary['trans_words'][ParDictionary['defaultLang']][parkey] || '';
+	'text': function(omfkey) {
+		var lang = OmfDictionary.resolveLang();
+		return OmfDictionary['trans_words'][lang][omfkey] || OmfDictionary['trans_words'][OmfDictionary['defaultLang']][omfkey] || '';
 	},
 	'translate': function() {
-			var lang = ParDictionary.resolveLang();
+			var lang = OmfDictionary.resolveLang();
 			var elements = false;
-			for (var parkey in ParDictionary['trans_words'][lang]) {
-				if (ParDictionary['trans_words'][lang].hasOwnProperty(parkey)) {
-					elements = document.getElementsByClassName(parkey);
+			for (var omfkey in OmfDictionary['trans_words'][lang]) {
+				if (OmfDictionary['trans_words'][lang].hasOwnProperty(omfkey)) {
+					elements = document.getElementsByClassName(omfkey);
 					if (elements.length) {
-						elements[0].outerHTML = ParDictionary['trans_words'][lang][parkey];
+						elements[0].outerHTML = OmfDictionary['trans_words'][lang][omfkey];
 					}
 				}
 			}
 		},
 	}
 
-	ParDictionary.defaultLang = cfg.defaultLang || ParDictionary.defaultLang;
+	OmfDictionary.defaultLang = cfg.defaultLang || OmfDictionary.defaultLang;
 
 	// ---- cookie catalog for the detailed cookie notice (hu-only content, vendor-gated) ----
 	// Each entry: category (necessary|preferences|statistics|marketing), vendor (optional key
@@ -308,10 +337,10 @@ var ParDictionary = {
 
 	function buildCookieTables() {
 		var titleKeys = {
-			necessary: 'par-body-necessary-title-text',
-			preferences: 'par-body-preferences-title-text',
-			statistics: 'par-body-analytics-title-text',
-			marketing: 'par-body-marketing-title-text'
+			necessary: 'omf-body-necessary-title-text',
+			preferences: 'omf-body-preferences-title-text',
+			statistics: 'omf-body-analytics-title-text',
+			marketing: 'omf-body-marketing-title-text'
 		};
 		var groups = { necessary: [], preferences: [], statistics: [], marketing: [] };
 
@@ -335,23 +364,32 @@ var ParDictionary = {
 			if (!rows.length) return;
 			var rowsHtml = rows.map(function (c) {
 				var providerCell = c.providerUrl
-					? '<a href="' + c.providerUrl + '" target="_blank" rel="noopener noreferrer nofollow">' + c.provider + '</a>'
-					: c.provider;
-				return '<tr><td>' + c.name + '</td><td>' + providerCell + '</td><td>' + c.purpose + '</td><td>' + c.duration + '</td><td>' + c.type + '</td></tr>';
+					? '<a href="' + escapeHtml(c.providerUrl) + '" target="_blank" rel="noopener noreferrer nofollow">' + escapeHtml(c.provider) + '</a>'
+					: escapeHtml(c.provider);
+				return '<tr><td>' + escapeHtml(c.name) + '</td><td>' + providerCell + '</td><td>' + escapeHtml(c.purpose) + '</td><td>' + escapeHtml(c.duration) + '</td><td>' + escapeHtml(c.type) + '</td></tr>';
 			}).join('');
 			html += '<details' + (idx === 0 ? ' open' : '') + '>' +
-				'<summary>' + ParDictionary.text(titleKeys[cat]) + ' (' + rows.length + ')</summary>' +
-				'<div class="par-cookie-table-wrapper"><table class="par-cookie-table"><thead><tr><th>Név</th><th>Szolgáltató</th><th>Cél</th><th>Max. tárolási idő</th><th>Típus</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
+				'<summary>' + OmfDictionary.text(titleKeys[cat]) + ' (' + rows.length + ')</summary>' +
+				'<div class="omf-cookie-table-wrapper"><table class="omf-cookie-table"><thead><tr><th>Név</th><th>Szolgáltató</th><th>Cél</th><th>Max. tárolási idő</th><th>Típus</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
 				'</details>';
 		});
 		return html;
 	}
 
+	// ---- inject optional webfont stylesheet (e.g. a Google Fonts CSS2 URL) ----
+	function injectFont() {
+		if (!fontUrl) return;
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = fontUrl;
+		document.head.appendChild(link);
+	}
+
 	// ---- inject CSS ----
 	function injectStyle() {
 		var style = document.createElement('style');
-		style.textContent = `:root{--par-main: ${mainColor}; --par-secondary: ${secondaryColor}; --par-accent: ${accentColor};}
-.par-modal{
+		style.textContent = `:root{--omf-main: ${mainColor}; --omf-secondary: ${secondaryColor}; --omf-accent: ${accentColor}; --omf-font: ${fontFamily};}
+.omf-modal{
 	position: fixed!important;
 	width: 100vw!important;
 	height: 100vh!important;
@@ -373,37 +411,37 @@ var ParDictionary = {
 	letter-spacing: normal;
 	color: #212121;
 	background-color: rgba(20,20,20,.75)!important;
-	font-family: "Montserrat", sans-serif!important;
+	font-family: var(--omf-font)!important;
 	font-optical-sizing: auto;
 }
-.par-modal:not(.open) {
+.omf-modal:not(.open) {
 	display: none!important;
 	opacity: 0!important;
 }
-.par-modal.open {
+.omf-modal.open {
 	overflow-x: hidden!important;
 	overflow-y: auto!important;
 }
-.par-modal--position-bottom-right {
+.omf-modal--position-bottom-right {
 	justify-content: flex-end!important;
 	align-items: flex-end!important;
 }
-.par-modal--position-bottom-left {
+.omf-modal--position-bottom-left {
 	justify-content: flex-start!important;
 	align-items: flex-end!important;
 }
-.par-modal--position-bottom-right .par-modal__dialog,
-.par-modal--position-bottom-left .par-modal__dialog {
+.omf-modal--position-bottom-right .omf-modal__dialog,
+.omf-modal--position-bottom-left .omf-modal__dialog {
 	margin: 1em;
 	max-inline-size: 26em;
 }
-.par-modal__header p {
+.omf-modal__header p {
 	font-size: 24px!important;
 	font-weight: 700!important;
 	line-height: 1.1em!important;
-	color: var(--par-main)!important;
+	color: var(--omf-main)!important;
 }
-.par-modal .par-modal__dialog {
+.omf-modal .omf-modal__dialog {
 	transition: transform .3s ease-out;
 	transform: translate(0,-50px);
 	position: relative;
@@ -413,11 +451,11 @@ var ParDictionary = {
 	max-inline-size: 42em;
 	max-block-size: 80vh;
 }
-.par-modal.open .par-modal__dialog {
+.omf-modal.open .omf-modal__dialog {
 	transform: none;
     font-size: initial;
 }
-.par-modal__content {
+.omf-modal__content {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -437,13 +475,13 @@ var ParDictionary = {
 	gap: 20px;
 	padding: 30px;
 }
-.par-modal__content > * {
+.omf-modal__content > * {
 	padding: 0;
 }
-.par-modal__content > * > * {
+.omf-modal__content > * > * {
 	margin-block: unset;
 }
-.par-modal__header {
+.omf-modal__header {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
@@ -453,20 +491,20 @@ var ParDictionary = {
 	gap: 20px;
 	padding-bottom: 0;
 }
-.par-modal__icon {
+.omf-modal__icon {
 	inline-size: 2em;
 	block-size: 2em;
 	flex-shrink: 0;
 }
-.par-modal__body > p {
+.omf-modal__body > p {
 	color: #212121;
 }
-.par-modal__body > p, .par-modal__body > p > a{
+.omf-modal__body > p, .omf-modal__body > p > a{
 	font-size: 14px!important;
 	line-height: 1.3em!important;
 }
-.par-modal__body > p > a {
-	color: var(--par-main);
+.omf-modal__body > p > a {
+	color: var(--omf-main);
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
@@ -476,42 +514,42 @@ var ParDictionary = {
 	line-height: 1.3em;
 	gap: 10px;
 }
-.par-modal__body > p > a > span{
+.omf-modal__body > p > a > span{
 	display: block;
 	width: 8px;
 	height: 8px;
-	border-top: 1px solid var(--par-main);
-	border-right: 1px solid var(--par-main);
+	border-top: 1px solid var(--omf-main);
+	border-right: 1px solid var(--omf-main);
 	transform: rotate(45deg);
 }
-.par-modal__body > * + * {
+.omf-modal__body > * + * {
 	margin-top: .8em;
 }
-.par-modal__footer {
+.omf-modal__footer {
 	display: flex;
 	align-items: stretch;
 	gap: 2em;
 	padding-top: 0;
 }
-.par-modal_settings{
+.omf-modal_settings{
 	display: none;
 }
-.par-modal_settings.open{
+.omf-modal_settings.open{
 	display: block;
 }
-.par-modal_details{
+.omf-modal_details{
 	display: none;
 }
-.par-modal_details.open{
+.omf-modal_details.open{
 	display: block;
 }
-.par-modal_details details + details{
+.omf-modal_details details + details{
 	margin-top: .5em;
 }
-.par-cookie-table-wrapper{
+.omf-cookie-table-wrapper{
 	overflow-x: auto;
 }
-.par-cookie-table{
+.omf-cookie-table{
 	width: 100%;
 	min-width: 34em;
 	table-layout: fixed;
@@ -519,8 +557,8 @@ var ParDictionary = {
 	font-size: 12px;
 	line-height: 1.4em;
 }
-.par-cookie-table th,
-.par-cookie-table td{
+.omf-cookie-table th,
+.omf-cookie-table td{
 	text-align: left;
 	vertical-align: top;
 	padding: 6px 8px;
@@ -529,26 +567,26 @@ var ParDictionary = {
 	overflow-wrap: break-word;
 	word-break: break-word;
 }
-.par-cookie-table th{
+.omf-cookie-table th{
 	font-weight: bold;
-	color: var(--par-main);
+	color: var(--omf-main);
 }
-.par-cookie-table th:nth-child(1), .par-cookie-table td:nth-child(1){ width: 14%; }
-.par-cookie-table th:nth-child(2), .par-cookie-table td:nth-child(2){ width: 14%; }
-.par-cookie-table th:nth-child(3), .par-cookie-table td:nth-child(3){ width: 42%; }
-.par-cookie-table th:nth-child(4), .par-cookie-table td:nth-child(4){ width: 15%; }
-.par-cookie-table th:nth-child(5), .par-cookie-table td:nth-child(5){ width: 15%; }
-.par-link-button{
+.omf-cookie-table th:nth-child(1), .omf-cookie-table td:nth-child(1){ width: 14%; }
+.omf-cookie-table th:nth-child(2), .omf-cookie-table td:nth-child(2){ width: 14%; }
+.omf-cookie-table th:nth-child(3), .omf-cookie-table td:nth-child(3){ width: 42%; }
+.omf-cookie-table th:nth-child(4), .omf-cookie-table td:nth-child(4){ width: 15%; }
+.omf-cookie-table th:nth-child(5), .omf-cookie-table td:nth-child(5){ width: 15%; }
+.omf-link-button{
 	background: transparent;
 	border: none;
 	padding: 0;
 	cursor: pointer;
-	color: var(--par-main);
+	color: var(--omf-main);
 	font-size: 14px!important;
 	text-decoration: underline;
-	font-family: "Montserrat", sans-serif!important;
+	font-family: var(--omf-font)!important;
 }
-.par-modal_settings-wrapper{
+.omf-modal_settings-wrapper{
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
@@ -557,7 +595,7 @@ var ParDictionary = {
 	align-content: normal;
 	gap: 20px;
 }
-.par-switch_field{
+.omf-switch_field{
 	display: flex;
 	flex-direction: column;
 	flex-wrap: nowrap;
@@ -568,67 +606,67 @@ var ParDictionary = {
 	flex-grow: 1;
 	flex-basis: 0;
 }
-.par-switch_field .par-switch_title{
+.omf-switch_field .omf-switch_title{
 	font-size: 16px!important;
 	text-align: center;
 	font-weight: bold;
-	color: var(--par-main);
+	color: var(--omf-main);
 }
-.par-switch {
+.omf-switch {
 	position: relative;
 	display: inline-block;
 	width: 60px;
 	height: 34px;
 }
-.par-switch input { 
+.omf-switch input { 
 	opacity: 0;
 	width: 0;
 	height: 0;
 }
-.par-slider {
+.omf-slider {
 	position: absolute;
 	cursor: pointer;
 	top: 0;
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background-color: var(--par-secondary);
+	background-color: var(--omf-secondary);
 	-webkit-transition: .3s;
 	transition: .3s;
 	border-radius: 34px;
 }
-.par-slider:before {
+.omf-slider:before {
 	position: absolute;
 	content: "";
 	height: 26px;
 	width: 26px;
 	left: 4px;
 	bottom: 4px;
-	background-color: var(--par-accent);
+	background-color: var(--omf-accent);
 	-webkit-transition: .3s;
 	transition: .3s;
 	border-radius: 50%;
 }
 
-input:checked + .par-slider {
-	background-color: var(--par-main);
+input:checked + .omf-slider {
+	background-color: var(--omf-main);
 }
-input:focus + .par-slider {
-	box-shadow: 0 0 1px var(--par-accent);
+input:focus + .omf-slider {
+	box-shadow: 0 0 1px var(--omf-accent);
 }
-input:checked + .par-slider:before {
+input:checked + .omf-slider:before {
 	-webkit-transform: translateX(26px);
 	-ms-transform: translateX(26px);
 	transform: translateX(26px);
 	background-color: #fff;
 }
-input:disabled + .par-slider {
+input:disabled + .omf-slider {
 	background-color: #e5e7eb;
 }
-input:disabled + .par-slider:before {
-	background-color: var(--par-main);
+input:disabled + .omf-slider:before {
+	background-color: var(--omf-main);
 }
-.par-modal__button {
+.omf-modal__button {
 	flex:  1!important;
 	color: #000000;
 	background-color: #ffffff;
@@ -639,36 +677,47 @@ input:disabled + .par-slider:before {
 	font-size: 16px!important;
 	font-weight: bold!important;
 	transition: background-color .3s;
-	font-family: "Montserrat", sans-serif!important;
+	font-family: var(--omf-font)!important;
 	font-optical-sizing: auto;
-	border: 1px solid var(--par-secondary)!important;
+	border: 1px solid var(--omf-secondary)!important;
 }
- .par-modal__button.show_on_settings{
+ .omf-modal__button.show_on_settings{
 	 display: none;
  }
- .par-modal__button.show-it{
+ .omf-modal__button.show-it{
 	 display: block;
  }	 
- .par-modal__button.hide-it{
+ .omf-modal__button.hide-it{
 	 display: none;
  }
-.par-modal__button:hover,
-.par-modal__button:focus {
+.omf-modal__button:hover,
+.omf-modal__button:focus {
 	background-color: #f0f0f0;
 	background-image: none;
 	color: #000000;
 }
-.par-modal__button--active {
+.omf-modal__button--active {
 	color: #ffffff;
-	background-color: var(--par-main);
+	background-color: var(--omf-main);
 }
-.par-modal__button--active:hover,
-.par-modal__button--active:focus {
-	background-color: var(--par-main);
+.omf-modal__button--active:hover,
+.omf-modal__button--active:focus {
+	background-color: var(--omf-main);
 	filter: brightness(0.85);
 	color: #ffffff;
 }
-.par-modal__button--settings, .par-modal__button--settings:hover {
+.omf-modal__button--reject {
+	color: #ffffff;
+	background-color: var(--omf-secondary);
+	border-color: var(--omf-secondary)!important;
+}
+.omf-modal__button--reject:hover,
+.omf-modal__button--reject:focus {
+	background-color: var(--omf-secondary);
+	filter: brightness(0.85);
+	color: #ffffff;
+}
+.omf-modal__button--settings, .omf-modal__button--settings:hover {
 	position: fixed;
 	display: flex;
 	justify-content: center;
@@ -685,93 +734,93 @@ input:disabled + .par-slider:before {
 	width: 3em;
 	height: 3em;
 }
-.par-modal__button--settings--right, .par-modal__button--settings--right:hover {
+.omf-modal__button--settings--right, .omf-modal__button--settings--right:hover {
 	inset-inline-start: auto;
 	inset-inline-end: 1em;
 }
-.par-modal__button--settings svg {
+.omf-modal__button--settings svg {
 	inline-size: 1em;
 	block-size: 1em;
 }
-.par-modal__button-close {
+.omf-modal__button-close {
 	border: none;
 	background: transparent;
 	float: right;
 	font-size: 2em!important;
 	cursor: pointer;
 }
-.par-modal__button-close:hover{
+.omf-modal__button-close:hover{
 	color: #333333;
 }
-.par-modal details {
+.omf-modal details {
 	padding: .5em;
 	border: 1px solid #dadce0;
 	border-radius: .25em;
 }
-.par-modal details summary {
+.omf-modal details summary {
 	cursor: pointer;
 }
-.par-modal details summary > * {
+.omf-modal details summary > * {
 	display: inline;
 }
 details[open] summary {
 	border-bottom: 1px solid #dadce0;
 	margin-bottom: 0.5em;
 }
-.par-modal details > div > * {
+.omf-modal details > div > * {
 	margin-bottom: unset;
 }
-.par-modal details > div > * + * {
+.omf-modal details > div > * + * {
 	margin-top: .5em;
 }
 
 @media only screen and (max-width:767px){
-	.par-modal{
+	.omf-modal{
 	}
-	.par-modal--position-bottom-right,
-	.par-modal--position-bottom-left {
+	.omf-modal--position-bottom-right,
+	.omf-modal--position-bottom-left {
 		justify-content: center!important;
 		align-items: center!important;
 	}
-	.par-modal .par-modal__dialog {
+	.omf-modal .omf-modal__dialog {
 		max-inline-size: 90vw;
 	}
-	.par-modal--position-bottom-right .par-modal__dialog,
-	.par-modal--position-bottom-left .par-modal__dialog {
+	.omf-modal--position-bottom-right .omf-modal__dialog,
+	.omf-modal--position-bottom-left .omf-modal__dialog {
 		margin: 1.75em auto;
 		max-inline-size: 90vw;
 	}
-	.par-modal__content {
+	.omf-modal__content {
 		width: 90vw;
 		box-sizing: border-box;
 		gap: 5px;
 		padding: 3vw;
 	}
 	
-	.par-modal__header {
+	.omf-modal__header {
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: flex-start;
 		gap: 5px;
 		padding-bottom: 0;
 	}
-	.par-modal__icon {
+	.omf-modal__icon {
 		inline-size: 1.5em;
 		block-size: 1.5em;
 	}
 
-	.par-modal__header p{
+	.omf-modal__header p{
 		font-size: 20px!important;
 	}
-    .par-modal__body > p, .par-modal__body > p > a{
+    .omf-modal__body > p, .omf-modal__body > p > a{
 	    font-size: 14px!important;
     }
-	.par-modal__footer {
+	.omf-modal__footer {
 		flex-direction:column-reverse;
 		gap: 10px;
 		margin-top: 10px;
 	}
-	.par-modal_settings-wrapper{
+	.omf-modal_settings-wrapper{
 		display: flex;
 		flex-direction: column;
 		flex-wrap: nowrap;
@@ -781,7 +830,7 @@ details[open] summary {
 		gap: 10px;
 	}
 	
-	.par-switch_field{
+	.omf-switch_field{
 		display: flex;
 		flex-direction: row;
 		flex-wrap: nowrap;
@@ -791,31 +840,31 @@ details[open] summary {
 		gap: 10px;
 		width: 100%;
 	}
-	.par-switch_field .par-switch_title{
+	.omf-switch_field .omf-switch_title{
 		font-size: 16px!important;
 		text-align: left!important;
 	}
-	.par-switch {
+	.omf-switch {
 		width: 56px;
 		height: 28px;
 	}
-	.par-slider:before {
+	.omf-slider:before {
 		width: 20px;
 		height: 20px;
 	}
-	input:checked + .par-slider:before {
+	input:checked + .omf-slider:before {
 		-webkit-transform: translateX(28px);
 		-ms-transform: translateX(28px);
 		transform: translateX(28px);
 		background-color: #fff;
 	}
-    .par-modal__button--settings, .par-modal__button--settings:hover {
+    .omf-modal__button--settings, .omf-modal__button--settings:hover {
 	    width: 2.75em;
 	    height: 2.75em;
 	    inset-block-end: max(0.75em, env(safe-area-inset-bottom));
 	    inset-inline-start: 0.75em;
     }
-    .par-modal__button--settings--right, .par-modal__button--settings--right:hover {
+    .omf-modal__button--settings--right, .omf-modal__button--settings--right:hover {
 	    inset-inline-start: auto;
 	    inset-inline-end: 0.75em;
     }
@@ -827,57 +876,58 @@ details[open] summary {
 	// ---- inject markup ----
 	function injectMarkup() {
 		var wrap = document.createElement('div');
-		wrap.innerHTML = `<div id="par-accept" class="par-modal par-modal--position-${bannerPosition}">
-    <div role="dialog" class="par-modal__dialog" aria-label="Cookie Consent">
-        <div class="par-modal__content">
-            <div class="par-modal__header">
-                <span class="par-header-title-text"></span>
-                <img class="par-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.4.0/assets/settings-icon.svg" alt="" aria-hidden="true">
+		wrap.innerHTML = `<div id="omf-accept" class="omf-modal omf-modal--position-${bannerPosition}">
+    <div role="dialog" class="omf-modal__dialog" aria-label="Cookie Consent">
+        <div class="omf-modal__content">
+            <div class="omf-modal__header">
+                <span class="omf-header-title-text"></span>
+                <img class="omf-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.4.0/assets/settings-icon.svg" alt="" aria-hidden="true">
             </div>
-            <div class="par-modal__body">
-				<span class="par-body-title-text"></span>
-				<span class="par-body-description-text"></span>
-				<p><button type="button" class="par-link-button" id="par-goto-details"><span class="par-body-details-link-text"></span></button></p>
+            <div class="omf-modal__body">
+				<span class="omf-body-title-text"></span>
+				<span class="omf-body-description-text"></span>
+				<p><button type="button" class="omf-link-button" id="omf-goto-details"><span class="omf-body-details-link-text"></span></button></p>
             </div>
-			<div class="par-modal_settings" id="ParSettingsPanel">
-				<div class="par-modal_settings-wrapper">
-					<div class="par-switch_field">
-						<span class="par-switch_title"><span class="par-body-necessary-title-text"></span></span>
-						<label class="par-switch">
+			<div class="omf-modal_settings" id="OmfSettingsPanel">
+				<div class="omf-modal_settings-wrapper">
+					<div class="omf-switch_field">
+						<span class="omf-switch_title"><span class="omf-body-necessary-title-text"></span></span>
+						<label class="omf-switch">
 							<input id="consent-necessary" type="checkbox" value="cookiesNecessary" autocomplete="off" checked disabled/>
-							<span class="par-slider"></span>
+							<span class="omf-slider"></span>
 						</label>
 					</div>
-					<div class="par-switch_field">
-						<span class="par-switch_title"><span class="par-body-preferences-title-text"></span></span>
-						<label class="par-switch">
-							<input id="consent-preferences" type="checkbox" value="cookiesPreferences" autocomplete="off" checked>
-							<span class="par-slider"></span>
+					<div class="omf-switch_field">
+						<span class="omf-switch_title"><span class="omf-body-preferences-title-text"></span></span>
+						<label class="omf-switch">
+							<input id="consent-preferences" type="checkbox" value="cookiesPreferences" autocomplete="off">
+							<span class="omf-slider"></span>
 						</label>
 					</div>
-					<div class="par-switch_field">
-						<span class="par-switch_title"><span class="par-body-analytics-title-text"></span></span>
-						<label class="par-switch">
-							<input id="consent-analytics" type="checkbox" value="cookiesAnalytics" autocomplete="off" checked>
-							<span class="par-slider"></span>
+					<div class="omf-switch_field">
+						<span class="omf-switch_title"><span class="omf-body-analytics-title-text"></span></span>
+						<label class="omf-switch">
+							<input id="consent-analytics" type="checkbox" value="cookiesAnalytics" autocomplete="off">
+							<span class="omf-slider"></span>
 						</label>
 					</div>
-					<div class="par-switch_field">
-						<span class="par-switch_title"><span class="par-body-marketing-title-text"></span></span>
-						<label class="par-switch">
-							<input id="consent-marketing" type="checkbox" value="cookiesMarketing" autocomplete="off" checked>
-							<span class="par-slider"></span>
+					<div class="omf-switch_field">
+						<span class="omf-switch_title"><span class="omf-body-marketing-title-text"></span></span>
+						<label class="omf-switch">
+							<input id="consent-marketing" type="checkbox" value="cookiesMarketing" autocomplete="off">
+							<span class="omf-slider"></span>
 						</label>
 					</div>
 				</div>
 			</div>
-			<div class="par-modal_details" id="ParDetailsPanel"></div>
+			<div class="omf-modal_details" id="OmfDetailsPanel"></div>
 
-            <div class="par-modal__footer">
-                <button class="par-modal__button" id="par-goto-selection"><span class="par-footer-open-settings-text"></span></button>
-				<button id="par-accept-selection" class="par-modal__button show_on_settings"><span class="par-footer-accept-selection-text"></span></button>
-                <button id="par-accept-all" class="par-modal__button par-modal__button--active"><span class="par-footer-accept-all-text"></span></button>
-				<button id="par-back-from-details" class="par-modal__button show_on_settings"><span class="par-footer-back-text"></span></button>
+            <div class="omf-modal__footer">
+                <button class="omf-modal__button" id="omf-goto-selection"><span class="omf-footer-open-settings-text"></span></button>
+				<button id="omf-accept-selection" class="omf-modal__button show_on_settings"><span class="omf-footer-accept-selection-text"></span></button>
+                <button id="omf-reject-all" class="omf-modal__button omf-modal__button--reject"><span class="omf-footer-reject-all-text"></span></button>
+                <button id="omf-accept-all" class="omf-modal__button omf-modal__button--active"><span class="omf-footer-accept-all-text"></span></button>
+				<button id="omf-back-from-details" class="omf-modal__button show_on_settings"><span class="omf-footer-back-text"></span></button>
             </div>
         </div>
     </div>
@@ -887,8 +937,8 @@ details[open] summary {
 		while (wrap.firstChild) { document.body.appendChild(wrap.firstChild); }
 
 		var btn = document.createElement('div');
-		var settingsButtonClass = 'par-modal__button--settings' + (settingsButtonSide === 'right' ? ' par-modal__button--settings--right' : '');
-		btn.innerHTML = `<button type="button" class="${settingsButtonClass}" id="par-open-settings" aria-label="Cookie Settings"></button>`;
+		var settingsButtonClass = 'omf-modal__button--settings' + (settingsButtonSide === 'right' ? ' omf-modal__button--settings--right' : '');
+		btn.innerHTML = `<button type="button" class="${settingsButtonClass}" id="omf-open-settings" aria-label="Cookie Settings"></button>`;
 		document.body.appendChild(btn.firstChild);
 	}
 
@@ -908,7 +958,67 @@ details[open] summary {
 			expires = '; expires=' + date.toUTCString();
 		}
 		var domainPart = domain ? '; domain=' + domain : '';
-		document.cookie = name + '=' + encodeURIComponent(value) + expires + domainPart + '; path=/; SameSite=Lax';
+		var securePart = window.location.protocol === 'https:' ? '; Secure' : '';
+		document.cookie = name + '=' + encodeURIComponent(value) + expires + domainPart + '; path=/; SameSite=Lax' + securePart;
+	}
+
+	function getOrCreateConsentId() {
+		var idCookieName = cookieName + '_id';
+		var existing = getCookie(idCookieName);
+		if (existing) return existing;
+		var id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+			var r = Math.random() * 16 | 0;
+			var v = c === 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+		setCookie(idCookieName, id, cookieExpiryDays, cookieDomain);
+		return id;
+	}
+
+	// ---- ad blocker detection (best-effort, cosmetic-filter heuristic only) ----
+	function detectAdblock(callback) {
+		try {
+			var bait = document.createElement('div');
+			bait.className = 'adsbox ad-banner textAd text-ads pub_300x250 text_ads';
+			bait.setAttribute('aria-hidden', 'true');
+			bait.style.cssText = 'position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;';
+			document.body.appendChild(bait);
+			setTimeout(function () {
+				var blocked = !bait.offsetParent || bait.offsetHeight === 0 || bait.offsetWidth === 0 ||
+					(window.getComputedStyle && window.getComputedStyle(bait).display === 'none');
+				if (bait.parentNode) { bait.parentNode.removeChild(bait); }
+				callback(!!blocked);
+			}, 100);
+		} catch (e) {
+			callback(null);
+		}
+	}
+
+	// ---- optional consent decision logging (fire-and-forget, never blocks the UI) ----
+	function sendConsentLog(actionType, consent) {
+		if (!consentLogUrl) return;
+		try {
+			var payload = {
+				consentId: getOrCreateConsentId(),
+				domain: window.location.hostname,
+				pageUrl: window.location.href,
+				actionType: actionType,
+				preferences: consent.personalization_storage === 'granted',
+				statistics: consent.analytics_storage === 'granted',
+				marketing: consent.ad_storage === 'granted',
+				adblockDetected: adblockDetected,
+				bannerVersion: bannerVersion,
+				privacyPolicyUrl: privacyPolicyUrl,
+				language: OmfDictionary.resolveLang(),
+				userAgent: navigator.userAgent,
+				secret: consentLogSecret
+			};
+			fetch(consentLogUrl, {
+				method: 'POST',
+				headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+				body: JSON.stringify(payload)
+			})['catch'](function () {});
+		} catch (e) {}
 	}
 
 	function categoriesFromConsent(consent) {
@@ -932,11 +1042,12 @@ details[open] summary {
 		};
 	}
 
-	function applyConsent(consent, persist) {
+	function applyConsent(consent, persist, actionType) {
 		var isFirst = persist && getCookie(cookieName) === null;
 		gtag('consent', 'update', consent);
 		if (persist) {
 			setCookie(cookieName, categoriesFromConsent(consent), cookieExpiryDays, cookieDomain);
+			refreshCrossDomainSignature();
 		}
 		var payload = {
 			event: 'gtm_consent_update',
@@ -948,45 +1059,96 @@ details[open] summary {
 		if (isFirst) {
 			var firstPayload = {};
 			for (var key in payload) { if (payload.hasOwnProperty(key)) { firstPayload[key] = payload[key]; } }
-			firstPayload.event = 'par_first_consent_update';
+			firstPayload.event = 'omf_first_consent_update';
 			dataLayer.push(firstPayload);
+		}
+		if (persist && actionType) {
+			sendConsentLog(actionType, consent);
 		}
 	}
 
 	function readCrossDomainParamsFromUrl() {
 		if (!crossDomainEnabled) return null;
 		var params = new URLSearchParams(window.location.search);
-		if (!params.has('par_consent')) return null;
-		return params.get('par_consent').split(',');
+		if (!params.has('omf_consent')) return null;
+		return params.get('omf_consent');
 	}
 
 	function stripCrossDomainParamFromUrl() {
 		var params = new URLSearchParams(window.location.search);
-		if (!params.has('par_consent')) return;
-		params.delete('par_consent');
+		if (!params.has('omf_consent')) return;
+		params.delete('omf_consent');
 		var query = params.toString();
 		var newUrl = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
 		window.history.replaceState({}, '', newUrl);
 	}
 
+	// ---- cross-domain consent signing (HMAC-SHA256 via Web Crypto) ----
+	// Prevents an attacker from forging ?omf_consent=marketing,statistics on a shared
+	// link to silently grant consent on a visitor's behalf. Both domains sharing
+	// consent must be configured with the SAME crossDomainSecret.
+
+	function hmacSignHex(message, secret) {
+		if (!window.crypto || !window.crypto.subtle || !window.TextEncoder) {
+			return Promise.resolve(null);
+		}
+		var enc = new TextEncoder();
+		return window.crypto.subtle.importKey(
+			'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+		).then(function (key) {
+			return window.crypto.subtle.sign('HMAC', key, enc.encode(message));
+		}).then(function (sigBuffer) {
+			var bytes = new Uint8Array(sigBuffer);
+			var hex = '';
+			for (var i = 0; i < bytes.length; i++) {
+				hex += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16);
+			}
+			return hex;
+		}, function () {
+			return null;
+		});
+	}
+
+	var signedCrossDomainParam = null;
+
+	function refreshCrossDomainSignature() {
+		signedCrossDomainParam = null;
+		if (!crossDomainEnabled || !crossDomainSecret) return;
+		var stored = getCookie(cookieName);
+		if (!stored) return;
+		hmacSignHex(stored, crossDomainSecret).then(function (hex) {
+			if (hex) { signedCrossDomainParam = stored + '.' + hex; }
+		});
+	}
+
+	function verifyCrossDomainParam(raw, callback) {
+		if (!crossDomainSecret) { callback(null); return; }
+		var idx = raw.lastIndexOf('.');
+		if (idx === -1) { callback(null); return; }
+		var categoriesStr = raw.substring(0, idx);
+		var sig = raw.substring(idx + 1);
+		hmacSignHex(categoriesStr, crossDomainSecret).then(function (expected) {
+			callback(expected && expected === sig ? categoriesStr.split(',') : null);
+		});
+	}
+
 	function setupCrossDomainLinks() {
 		if (!crossDomainEnabled || !crossDomainHosts.length) return;
 		document.addEventListener('click', function (ev) {
-			var stored = getCookie(cookieName);
-			if (!stored) return;
+			if (!signedCrossDomainParam) return;
 			var link = ev.target.closest ? ev.target.closest('a[href]') : null;
 			if (!link) return;
 			var linkUrl;
 			try { linkUrl = new URL(link.href, window.location.href); } catch (e) { return; }
 			if (crossDomainHosts.indexOf(linkUrl.hostname) === -1) return;
-			linkUrl.searchParams.set('par_consent', stored);
+			linkUrl.searchParams.set('omf_consent', signedCrossDomainParam);
 			link.href = linkUrl.toString();
 		}, true);
 	}
 
-	function openParModal(id) {
+	function openOmfModal(id) {
 		document.getElementById(id).classList.add('open');
-		document.body.classList.add('par-modal-open');
+		document.body.classList.add('omf-modal-open');
 		var stored = getCookie(cookieName);
 		if (stored !== null) {
 			var categories = stored.split(',');
@@ -995,41 +1157,43 @@ details[open] summary {
 			document.getElementById('consent-analytics').checked = has('statistics');
 			document.getElementById('consent-preferences').checked = has('personalization');
 			document.getElementById('consent-necessary').checked = true;
-			document.getElementById('ParSettingsPanel').classList.remove('open');
-			document.getElementById('par-goto-selection').classList.remove('hide-it');
-			document.getElementById('par-accept-selection').classList.remove('show-it');
-			document.getElementById('par-goto-selection').classList.add('show-it');
-			document.getElementById('par-accept-selection').classList.add('hide-it');
+			document.getElementById('OmfSettingsPanel').classList.remove('open');
+			document.getElementById('omf-goto-selection').classList.remove('hide-it');
+			document.getElementById('omf-accept-selection').classList.remove('show-it');
+			document.getElementById('omf-goto-selection').classList.add('show-it');
+			document.getElementById('omf-accept-selection').classList.add('hide-it');
 		}
-		closeParDetailsPanel();
+		closeOmfDetailsPanel();
 	}
 
-	function openParSettingsPanel(id) {
-		closeParDetailsPanel();
+	function openOmfSettingsPanel(id) {
+		closeOmfDetailsPanel();
 		document.getElementById(id).classList.add('open');
-		document.getElementById('par-goto-selection').classList.remove('show-it');
-		document.getElementById('par-accept-selection').classList.remove('hide-it');
-		document.getElementById('par-goto-selection').classList.add('hide-it');
-		document.getElementById('par-accept-selection').classList.add('show-it');
+		document.getElementById('omf-goto-selection').classList.remove('show-it');
+		document.getElementById('omf-accept-selection').classList.remove('hide-it');
+		document.getElementById('omf-goto-selection').classList.add('hide-it');
+		document.getElementById('omf-accept-selection').classList.add('show-it');
 	}
 
-	function openParDetailsPanel() {
-		document.getElementById('ParSettingsPanel').classList.remove('open');
-		document.getElementById('ParDetailsPanel').classList.add('open');
-		document.getElementById('par-goto-selection').classList.add('hide-it');
-		document.getElementById('par-accept-selection').classList.add('hide-it');
-		document.getElementById('par-accept-all').classList.add('hide-it');
-		document.getElementById('par-back-from-details').classList.remove('hide-it');
-		document.getElementById('par-back-from-details').classList.add('show-it');
+	function openOmfDetailsPanel() {
+		document.getElementById('OmfSettingsPanel').classList.remove('open');
+		document.getElementById('OmfDetailsPanel').classList.add('open');
+		document.getElementById('omf-goto-selection').classList.add('hide-it');
+		document.getElementById('omf-accept-selection').classList.add('hide-it');
+		document.getElementById('omf-reject-all').classList.add('hide-it');
+		document.getElementById('omf-accept-all').classList.add('hide-it');
+		document.getElementById('omf-back-from-details').classList.remove('hide-it');
+		document.getElementById('omf-back-from-details').classList.add('show-it');
 	}
 
-	function closeParDetailsPanel() {
-		document.getElementById('ParDetailsPanel').classList.remove('open');
-		document.getElementById('par-back-from-details').classList.remove('show-it');
-		document.getElementById('par-back-from-details').classList.add('hide-it');
-		document.getElementById('par-goto-selection').classList.remove('hide-it');
-		document.getElementById('par-accept-selection').classList.remove('show-it');
-		document.getElementById('par-accept-all').classList.remove('hide-it');
+	function closeOmfDetailsPanel() {
+		document.getElementById('OmfDetailsPanel').classList.remove('open');
+		document.getElementById('omf-back-from-details').classList.remove('show-it');
+		document.getElementById('omf-back-from-details').classList.add('hide-it');
+		document.getElementById('omf-goto-selection').classList.remove('hide-it');
+		document.getElementById('omf-accept-selection').classList.remove('show-it');
+		document.getElementById('omf-reject-all').classList.remove('hide-it');
+		document.getElementById('omf-accept-all').classList.remove('hide-it');
 	}
 
 	function acceptAllCookies() {
@@ -1037,10 +1201,18 @@ details[open] summary {
 		document.getElementById('consent-analytics').checked = true;
 		document.getElementById('consent-preferences').checked = true;
 		document.getElementById('consent-necessary').checked = true;
-		acceptSelectedCookies();
+		acceptSelectedCookies('accept_all');
 	}
 
-	function acceptSelectedCookies() {
+	function rejectAllCookies() {
+		document.getElementById('consent-marketing').checked = false;
+		document.getElementById('consent-analytics').checked = false;
+		document.getElementById('consent-preferences').checked = false;
+		document.getElementById('consent-necessary').checked = true;
+		acceptSelectedCookies('reject_all');
+	}
+
+	function acceptSelectedCookies(actionType) {
 		var consent = {
 			ad_storage: document.getElementById('consent-marketing').checked ? 'granted' : 'denied',
 			ad_user_data: document.getElementById('consent-marketing').checked ? 'granted' : 'denied',
@@ -1050,9 +1222,9 @@ details[open] summary {
 			functionality_storage: 'granted',
 			security_storage: 'granted'
 		};
-		applyConsent(consent, true);
-		document.querySelector('.par-modal.open').classList.remove('open');
-		document.body.classList.remove('par-modal-open');
+		applyConsent(consent, true, actionType || 'save_preferences');
+		document.querySelector('.omf-modal.open').classList.remove('open');
+		document.body.classList.remove('omf-modal-open');
 	}
 
 	window.dataLayer = window.dataLayer || [];
@@ -1071,38 +1243,50 @@ details[open] summary {
 	}
 
 	function init() {
+		detectAdblock(function (blocked) { adblockDetected = blocked; });
+		injectFont();
 		injectStyle();
 		injectMarkup();
-		ParDictionary.translate();
-		document.getElementById('ParDetailsPanel').innerHTML = buildCookieTables();
+		OmfDictionary.translate();
+		document.getElementById('OmfDetailsPanel').innerHTML = buildCookieTables();
 
 		var incoming = readCrossDomainParamsFromUrl();
 		if (incoming) {
-			applyConsent(consentFromCategories(incoming), true);
-			stripCrossDomainParamFromUrl();
+			verifyCrossDomainParam(incoming, function (categories) {
+				if (categories) {
+					applyConsent(consentFromCategories(categories), true, 'cross_domain_inherit');
+				} else if (getCookie(cookieName) === null && !isOnPolicyPage()) {
+					openOmfModal('omf-accept');
+				}
+				stripCrossDomainParamFromUrl();
+			});
 		} else if (getCookie(cookieName) === null) {
-			if (!isOnPolicyPage()) { openParModal('par-accept'); }
+			if (!isOnPolicyPage()) { openOmfModal('omf-accept'); }
 		}
 
+		refreshCrossDomainSignature();
 		setupCrossDomainLinks();
 
-		document.getElementById('par-accept-all').addEventListener('click', function () {
+		document.getElementById('omf-accept-all').addEventListener('click', function () {
 			acceptAllCookies();
 		});
-		document.getElementById('par-accept-selection').addEventListener('click', function () {
+		document.getElementById('omf-reject-all').addEventListener('click', function () {
+			rejectAllCookies();
+		});
+		document.getElementById('omf-accept-selection').addEventListener('click', function () {
 			acceptSelectedCookies();
 		});
-		document.getElementById('par-goto-selection').addEventListener('click', function () {
-			openParSettingsPanel('ParSettingsPanel');
+		document.getElementById('omf-goto-selection').addEventListener('click', function () {
+			openOmfSettingsPanel('OmfSettingsPanel');
 		});
-		document.getElementById('par-goto-details').addEventListener('click', function () {
-			openParDetailsPanel();
+		document.getElementById('omf-goto-details').addEventListener('click', function () {
+			openOmfDetailsPanel();
 		});
-		document.getElementById('par-back-from-details').addEventListener('click', function () {
-			closeParDetailsPanel();
+		document.getElementById('omf-back-from-details').addEventListener('click', function () {
+			closeOmfDetailsPanel();
 		});
-		document.getElementById('par-open-settings').addEventListener('click', function () {
-			openParModal('par-accept');
+		document.getElementById('omf-open-settings').addEventListener('click', function () {
+			openOmfModal('omf-accept');
 		});
 	}
 
