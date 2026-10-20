@@ -8,10 +8,21 @@
  * consentLogUrl (optional Apps Script Web App endpoint), consentLogSecret (optional shared secret)
  */
 (function () {
+	// These two values get written raw into a <style> block's text content (not
+	// HTML), so escapeHtml() would be the wrong defense here - a value containing
+	// "}" could terminate the surrounding CSS rule early and inject arbitrary CSS
+	// (e.g. hide the Reject button, overlay fake content). Restrict to a safe charset instead.
+	function sanitizeHexColor(value, fallback) {
+		return /^#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{2})?)?$/.test(value || '') ? value : fallback;
+	}
+	function sanitizeFontFamily(value, fallback) {
+		return /^[A-Za-z0-9\s,'".\-]+$/.test(value || '') ? value : fallback;
+	}
+
 	var cfg = window.__omfBannerConfig || {};
-	var mainColor = cfg.mainColor || '#4F74CB';
-	var secondaryColor = cfg.secondaryColor || '#9CA3AF';
-	var accentColor = cfg.accentColor || '#4F9EFB';
+	var mainColor = sanitizeHexColor(cfg.mainColor, '#4F74CB');
+	var secondaryColor = sanitizeHexColor(cfg.secondaryColor, '#9CA3AF');
+	var accentColor = sanitizeHexColor(cfg.accentColor, '#4F9EFB');
 	var allowedPositions = ['center', 'bottom-right', 'bottom-left'];
 	var bannerPosition = allowedPositions.indexOf(cfg.bannerPosition) > -1 ? cfg.bannerPosition : 'center';
 	var settingsButtonSide = bannerPosition === 'bottom-left' ? 'right' : 'left';
@@ -23,7 +34,7 @@
 	var crossDomainHosts = (cfg.crossDomain && cfg.crossDomain.hosts) || [];
 	var crossDomainSecret = (cfg.crossDomain && cfg.crossDomain.secret) || '';
 	var cookieVendors = cfg.cookieVendors || {};
-	var fontFamily = cfg.fontFamily || 'Arial, sans-serif';
+	var fontFamily = sanitizeFontFamily(cfg.fontFamily, 'Arial, sans-serif');
 	var fontUrl = cfg.fontUrl || '';
 	var consentLogUrl = cfg.consentLogUrl || '';
 	var consentLogSecret = cfg.consentLogSecret || '';
@@ -1109,6 +1120,16 @@ details[open] summary {
 		});
 	}
 
+	// A signature alone only proves "someone who knows the secret produced this
+	// exact category combination" - since there are only 8 possible combinations,
+	// an attacker doesn't need to break the HMAC, they just need to observe ONE
+	// legitimate token once (e.g. by using the banner themselves, or from any
+	// shared link) and can then replay that same token against unlimited other
+	// victims, forever. A timestamp + short expiry window closes this: a replayed
+	// token goes stale almost immediately, while a genuine click-through (which
+	// happens within seconds of the token being minted) still works normally.
+	var CROSS_DOMAIN_TOKEN_MAX_AGE_MS = 2 * 60 * 1000;
+
 	var signedCrossDomainParam = null;
 
 	function refreshCrossDomainSignature() {
@@ -1116,18 +1137,22 @@ details[open] summary {
 		if (!crossDomainEnabled || !crossDomainSecret) return;
 		var stored = getCookie(cookieName);
 		if (!stored) return;
-		hmacSignHex(stored, crossDomainSecret).then(function (hex) {
-			if (hex) { signedCrossDomainParam = stored + '.' + hex; }
+		var ts = String(Date.now());
+		hmacSignHex(stored + '.' + ts, crossDomainSecret).then(function (hex) {
+			if (hex) { signedCrossDomainParam = stored + '.' + ts + '.' + hex; }
 		});
 	}
 
 	function verifyCrossDomainParam(raw, callback) {
 		if (!crossDomainSecret) { callback(null); return; }
-		var idx = raw.lastIndexOf('.');
-		if (idx === -1) { callback(null); return; }
-		var categoriesStr = raw.substring(0, idx);
-		var sig = raw.substring(idx + 1);
-		hmacSignHex(categoriesStr, crossDomainSecret).then(function (expected) {
+		var parts = raw.split('.');
+		if (parts.length !== 3) { callback(null); return; }
+		var categoriesStr = parts[0];
+		var ts = parts[1];
+		var sig = parts[2];
+		var age = Date.now() - Number(ts);
+		if (!ts || isNaN(age) || age < 0 || age > CROSS_DOMAIN_TOKEN_MAX_AGE_MS) { callback(null); return; }
+		hmacSignHex(categoriesStr + '.' + ts, crossDomainSecret).then(function (expected) {
 			callback(expected && expected === sig ? categoriesStr.split(',') : null);
 		});
 	}
@@ -1265,6 +1290,9 @@ details[open] summary {
 		}
 
 		refreshCrossDomainSignature();
+		if (crossDomainEnabled && crossDomainSecret) {
+			setInterval(refreshCrossDomainSignature, 60 * 1000);
+		}
 		setupCrossDomainLinks();
 
 		document.getElementById('omf-accept-all').addEventListener('click', function () {
