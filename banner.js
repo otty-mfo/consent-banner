@@ -40,6 +40,8 @@
 	var consentLogSecret = cfg.consentLogSecret || '';
 	var adblockDetected = null;
 	var bannerVersion = cfg.scriptVersion || '';
+	var scriptBaseUrl = cfg.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner';
+	var assetBaseUrl = scriptBaseUrl + '@' + (bannerVersion || 'main') + '/assets/';
 
 	function escapeHtml(str) {
 		return String(str).replace(/[&<>"']/g, function (ch) {
@@ -739,7 +741,7 @@ input:disabled + .omf-slider:before {
 	background: transparent;
 	z-index: 99998;
 	cursor: pointer;
-	background-image: url("https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.4.0/assets/settings-icon.svg");
+	background-image: url("${assetBaseUrl}settings-icon.svg");
 	background-repeat: no-repeat;
 	background-size: contain;
 	width: 3em;
@@ -892,7 +894,7 @@ details[open] summary {
         <div class="omf-modal__content">
             <div class="omf-modal__header">
                 <span class="omf-header-title-text"></span>
-                <img class="omf-modal__icon" src="https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner@v1.4.0/assets/settings-icon.svg" alt="" aria-hidden="true">
+                <img class="omf-modal__icon" src="${assetBaseUrl}settings-icon.svg" alt="" aria-hidden="true">
             </div>
             <div class="omf-modal__body">
 				<span class="omf-body-title-text"></span>

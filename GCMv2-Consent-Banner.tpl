@@ -432,6 +432,7 @@ const config = {
   },
   consentLogUrl: data.consentLogUrl || '',
   consentLogSecret: data.consentLogSecret || '',
+  scriptBaseUrl: data.scriptBaseUrl || 'https://cdn.jsdelivr.net/gh/otty-mfo/consent-banner',
   scriptVersion: data.scriptVersion || 'v1.4.0'
 };
 
