@@ -21,6 +21,13 @@
  *      a domain neve (pl. `domain:pospartner.hu`), value = egy már meglévő
  *      Spreadsheet ID-ja. Ha egy domainhez nincs ilyen property, a script
  *      automatikusan létrehoz egy újat és elmenti ide - utána már azt használja.
+ * FONTOS: ha egy már korábban deployolt projektbe illeszted be ezt a frissített
+ * kódot (a `consent_logs` mappás verziót), a script most a Drive-hoz is
+ * hozzáfér (`DriveApp`), nem csak a Sheets-hez - ez tágabb jogosultság, mint
+ * korábban, ezért újra le kell futtatnod a Deploy > Manage deployments > Edit
+ * (a ceruza ikon) > New version > Deploy lépést, és az engedélykérő ablak
+ * ismét felugrik (Advanced > Go to... (unsafe) > Allow).
+ *
  * 4. Deploy > New deployment > Web app:
  *    - Execute as: Me (a te fiókod)
  *    - Who has access: Anyone
@@ -34,8 +41,9 @@
  *
  * ÚJ ÜGYFÉL FELVÉTELE:
  * Az első beérkező kérésnél, ha a domainhez még nincs property, a script
- * automatikusan létrehoz egy "ConsentLog - <domain>" nevű új Spreadsheetet,
- * és emailt küld neked a script-tulajdonos címére (lásd NOTIFY_EMAIL) a
+ * automatikusan létrehoz egy "ConsentLog - <domain>" nevű új Spreadsheetet
+ * egy "consent_logs" nevű Drive mappában (ha a mappa még nem létezik, azt is
+ * létrehozza), és emailt küld neked a script-tulajdonos címére (lásd NOTIFY_EMAIL) a
  * létrejött fájl linkjével. EZ A FÁJL ALAPBÓL CSAK NEKED ÉRHETŐ EL - az ügyfél
  * saját embereinek hozzáférését neked kell utólag, kézzel megadnod (Drive-ban
  * megosztás), mert ez egy tudatos, emberi döntés kell hogy maradjon, nem
@@ -132,6 +140,7 @@ function getOrCreateLogSheet_(domain) {
     ss = getOrCreateOverflowSpreadsheet_(props);
   } else {
     ss = SpreadsheetApp.create('ConsentLog - ' + domain);
+    DriveApp.getFileById(ss.getId()).moveTo(getOrCreateLogsFolder_());
     props.setProperty(propKey, ss.getId());
     isNew = true;
   }
@@ -169,6 +178,14 @@ function getOrCreateLogSheet_(domain) {
   return sheet;
 }
 
+function getOrCreateLogsFolder_() {
+  var folders = DriveApp.getFoldersByName('consent_logs');
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+  return DriveApp.createFolder('consent_logs');
+}
+
 function countAutoDomains_(props) {
   var all = props.getKeys();
   var count = 0;
@@ -184,6 +201,7 @@ function getOrCreateOverflowSpreadsheet_(props) {
     return SpreadsheetApp.openById(id);
   }
   var ss = SpreadsheetApp.create('ConsentLog - OVERFLOW (domain limit elérve)');
+  DriveApp.getFileById(ss.getId()).moveTo(getOrCreateLogsFolder_());
   props.setProperty('OVERFLOW_SHEET_ID', ss.getId());
   if (NOTIFY_EMAIL) {
     try {

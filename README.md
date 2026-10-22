@@ -133,7 +133,7 @@ A payload mezői:
 
 ### Kész implementáció: Google Apps Script + Google Sheets
 
-[`apps-script/ConsentLogger.gs`](apps-script/ConsentLogger.gs) egy kész, bemásolható Web App, ami a beérkező `domain` mező alapján automatikusan **domainenként külön Spreadsheetbe** írja a sorokat — ha egy domainhez még nincs Spreadsheet, automatikusan létrehoz egyet, elmenti a párosítást (Script Properties), és emailt küld a script-tulajdonosnak a linkkel.
+[`apps-script/ConsentLogger.gs`](apps-script/ConsentLogger.gs) egy kész, bemásolható Web App, ami a beérkező `domain` mező alapján automatikusan **domainenként külön Spreadsheetbe** írja a sorokat — ha egy domainhez még nincs Spreadsheet, automatikusan létrehoz egyet egy **"consent_logs" nevű Drive mappában** (azt is automatikusan létrehozva, ha még nem létezik), elmenti a párosítást (Script Properties), és emailt küld a script-tulajdonosnak a linkkel.
 
 Ez azért fontos, mert **ugyanaz az egy Web App URL használható több weboldal/ügyfél GTM sablonjában is, anélkül, hogy látnák egymás adatait** — a szétválasztás a script belsejében, fájlszinten történik (nem csak egy közös Sheet különböző füleiként, amit bárki látna, aki hozzáfér a fájlhoz).
 
